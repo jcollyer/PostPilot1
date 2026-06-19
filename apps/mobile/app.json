@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "scheme": "saas",
     "newArchEnabled": true,
     "ios": {
@@ -15,7 +16,11 @@
       }
     },
     "android": {
-      "package": "com.example.saastemplate"
+      "package": "com.example.saastemplate",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "bundler": "metro"

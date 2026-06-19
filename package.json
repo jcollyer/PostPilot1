@@ -20,6 +20,7 @@
     "db:push": "dotenv -e .env -- prisma db push --schema=packages/db/prisma/schema.prisma",
     "db:studio": "dotenv -e .env -- prisma studio --schema=packages/db/prisma/schema.prisma",
     "db:seed": "dotenv -e .env -- tsx packages/db/prisma/seed.ts",
+    "refresh:connections": "dotenv -e .env -- npm --workspace=@saas/connectors run refresh:connections",
     "ngrok": "ngrok http --url=jointly-topical-leech.ngrok-free.app 3000"
   },
   "devDependencies": {

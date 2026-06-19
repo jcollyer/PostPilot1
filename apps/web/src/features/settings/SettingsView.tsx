@@ -169,6 +169,20 @@ export function SettingsView() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Connections</CardTitle>
+          <CardDescription>
+            Connect TikTok, Instagram, and YouTube, and check their health.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" asChild>
+            <Link href="/settings/connections">Manage platform connections</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card className="border-destructive/50">
         <CardHeader>
           <CardTitle className="text-destructive">Delete account</CardTitle>
