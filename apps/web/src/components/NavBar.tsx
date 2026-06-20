@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { getInitials } from '@/lib/utils';
 import { signOutAction } from '@/server/actions';
+import { NotificationsBell } from '@/components/NotificationsBell';
 
 interface NavBarProps {
   name: string | null | undefined;
@@ -42,6 +43,9 @@ export function NavBar({ name, email, image }: NavBarProps) {
             Queue
           </Link>
         </nav>
+        <div className="order-3 ml-auto">
+          <NotificationsBell />
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
