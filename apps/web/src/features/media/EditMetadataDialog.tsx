@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { ImagePlus, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, ImagePlus, Loader2, Sparkles } from 'lucide-react';
 
-import { ACCEPTED_IMAGE_MIME_TYPES, MAX_COVER_BYTES } from '@saas/types';
+import {
+  ACCEPTED_IMAGE_MIME_TYPES,
+  MAX_COVER_BYTES,
+  PLATFORM_LABELS,
+  platformSchema,
+  type Platform,
+} from '@saas/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,9 +48,16 @@ export function EditMetadataDialog({
   const [coverError, setCoverError] = useState<string | null>(null);
 
   const categories = trpc.media.listCategories.useQuery();
+  const detail = trpc.media.get.useQuery({ videoId: video.id }, { enabled: open });
   const updateMetadata = trpc.media.updateMetadata.useMutation();
   const initCoverUpload = trpc.media.initCoverUpload.useMutation();
   const confirmCoverUpload = trpc.media.confirmCoverUpload.useMutation();
+  const selectThumbnail = trpc.media.selectThumbnail.useMutation({
+    onSuccess: () => {
+      detail.refetch();
+      onSaved();
+    },
+  });
 
   const parseHashtags = (raw: string) =>
     raw
@@ -188,7 +201,60 @@ export function EditMetadataDialog({
               </label>
             </div>
             {coverError ? <p className="text-destructive text-xs">{coverError}</p> : null}
+            <p className="text-muted-foreground text-xs">
+              No cover? The AI-selected thumbnail below is used automatically.
+            </p>
           </div>
+
+          {detail.data && detail.data.thumbnails.length > 0 ? (
+            <div className="space-y-1.5">
+              <Label>AI thumbnail suggestions</Label>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {detail.data.thumbnails.map((t) => {
+                  const selected = t.id === detail.data?.selectedThumbnailId;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => selectThumbnail.mutate({ videoId: video.id, thumbnailId: t.id })}
+                      disabled={selectThumbnail.isPending}
+                      className={`relative h-24 w-14 shrink-0 overflow-hidden rounded-md border-2 ${
+                        selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'
+                      }`}
+                    >
+                      {t.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={t.url} alt="Frame" className="h-full w-full object-cover" />
+                      ) : null}
+                      {selected ? (
+                        <span className="bg-primary absolute bottom-0.5 right-0.5 rounded-full p-0.5 text-white">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {detail.data ? (
+            <div className="space-y-1.5">
+              <Label>Per-platform captions</Label>
+              <p className="text-muted-foreground text-xs">
+                AI tailors each platform. Edits here are kept and won&apos;t be overwritten on
+                re-generate.
+              </p>
+              <PlatformMetaEditor
+                videoId={video.id}
+                meta={detail.data.platformMeta}
+                onSaved={() => {
+                  detail.refetch();
+                  onSaved();
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter>
@@ -202,5 +268,103 @@ export function EditMetadataDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface PlatformMetaRow {
+  platform: Platform;
+  title: string | null;
+  caption: string | null;
+  hashtags: string[];
+  aiGenerated: boolean;
+  edited: boolean;
+}
+
+function PlatformMetaEditor({
+  videoId,
+  meta,
+  onSaved,
+}: {
+  videoId: string;
+  meta: PlatformMetaRow[];
+  onSaved: () => void;
+}) {
+  const [platform, setPlatform] = useState<Platform>(platformSchema.options[0]);
+  const current = meta.find((m) => m.platform === platform);
+
+  const [title, setTitle] = useState('');
+  const [caption, setCaption] = useState('');
+  const [hashtags, setHashtags] = useState('');
+
+  // Reload the fields whenever the selected platform (or its data) changes.
+  useEffect(() => {
+    setTitle(current?.title ?? '');
+    setCaption(current?.caption ?? '');
+    setHashtags((current?.hashtags ?? []).join(' '));
+  }, [platform, current?.title, current?.caption, current?.hashtags]);
+
+  const setPlatformMeta = trpc.media.setPlatformMeta.useMutation({ onSuccess: onSaved });
+
+  const save = () =>
+    setPlatformMeta.mutate({
+      videoId,
+      platform,
+      title: title.trim() || null,
+      caption: caption.trim() || null,
+      hashtags: hashtags
+        .split(/[\s,]+/)
+        .map((t) => t.replace(/^#/, '').trim())
+        .filter(Boolean),
+    });
+
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <div className="flex items-center gap-1">
+        {platformSchema.options.map((p) => {
+          const row = meta.find((m) => m.platform === p);
+          return (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPlatform(p)}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${
+                p === platform ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+              }`}
+            >
+              {PLATFORM_LABELS[p]}
+              {row?.edited ? (
+                <span title="Edited by you">✎</span>
+              ) : row?.aiGenerated ? (
+                <Sparkles className="h-3 w-3" />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={`${PLATFORM_LABELS[platform]} title`}
+      />
+      <textarea
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        rows={3}
+        placeholder={`${PLATFORM_LABELS[platform]} caption`}
+        className="border-input bg-background focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      />
+      <Input
+        value={hashtags}
+        onChange={(e) => setHashtags(e.target.value)}
+        placeholder="hashtags (space separated)"
+      />
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={save} disabled={setPlatformMeta.isPending}>
+          {setPlatformMeta.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Save {PLATFORM_LABELS[platform]}
+        </Button>
+      </div>
+    </div>
   );
 }

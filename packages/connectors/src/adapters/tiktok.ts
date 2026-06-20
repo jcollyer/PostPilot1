@@ -116,7 +116,10 @@ export const tiktokAdapter: PlatformAdapter = {
     const identity = await this.fetchIdentity(res.access_token).catch(() => ({
       externalAccountId: res.open_id,
     }));
-    return { tokens, identity: { externalAccountId: res.open_id, ...identity } };
+    return {
+      tokens,
+      identity: { ...identity, externalAccountId: identity.externalAccountId ?? res.open_id },
+    };
   },
 
   async refreshTokens({ refreshToken }: RefreshParams): Promise<OAuthTokens> {

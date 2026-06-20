@@ -19,6 +19,9 @@ export {
   thumbnailKey,
 } from './keys';
 
+// Server-side object IO (worker / AI pipeline only)
+export { putObject, getObjectBuffer, downloadToFile } from './server-io';
+
 // Presigned upload flows
 export {
   planMultipart,

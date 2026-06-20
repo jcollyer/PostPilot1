@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { mediaStatusSchema } from './domain';
+import { mediaStatusSchema, platformSchema } from './domain';
 
 /**
  * Shared validation for the Media Library. The web/mobile clients and the API
@@ -114,3 +114,42 @@ export type ListVideosInput = z.infer<typeof listVideosSchema>;
 
 export const videoIdSchema = z.object({ videoId: z.string().min(1) });
 export type VideoIdInput = z.infer<typeof videoIdSchema>;
+
+// ---------------------------------------------------------------------------
+// AI pipeline (Chunk 5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Queue videos for (re)processing by the AI worker. Scope is one of: a single
+ * video, a whole upload session, or — if neither is given — all of the user's
+ * videos. `onlyFailed` re-runs just the ones that previously failed.
+ */
+export const regenerateMetadataSchema = z.object({
+  videoId: z.string().min(1).optional(),
+  uploadSessionId: z.string().min(1).optional(),
+  onlyFailed: z.boolean().optional().default(false),
+});
+export type RegenerateMetadataInput = z.infer<typeof regenerateMetadataSchema>;
+
+/** Override the AI-selected thumbnail with one of the candidate frames. */
+export const selectThumbnailSchema = z.object({
+  videoId: z.string().min(1),
+  thumbnailId: z.string().min(1),
+});
+export type SelectThumbnailInput = z.infer<typeof selectThumbnailSchema>;
+
+/** Edit a per-platform caption variant (marks it user-edited so AI won't clobber it). */
+export const setPlatformMetaSchema = z.object({
+  videoId: z.string().min(1),
+  platform: platformSchema,
+  title: z.string().trim().max(150).nullish(),
+  caption: z.string().trim().max(5000).nullish(),
+  hashtags: z.array(z.string().trim().min(1).max(100)).max(60).optional(),
+});
+export type SetPlatformMetaInput = z.infer<typeof setPlatformMetaSchema>;
+
+/** Optional scope for the AI-status summary counts. */
+export const aiSummarySchema = z.object({
+  uploadSessionId: z.string().min(1).optional(),
+});
+export type AiSummaryInput = z.infer<typeof aiSummarySchema>;

@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Copy,
   Film,
   Loader2,
   MoreVertical,
   Pencil,
   Play,
   Search,
+  Sparkles,
   Trash2,
+  TriangleAlert,
 } from 'lucide-react';
 
 import { mediaStatusSchema, type MediaStatus } from '@saas/types';
@@ -51,6 +54,28 @@ export function MediaLibraryView() {
 
   const categories = trpc.media.listCategories.useQuery();
 
+  // Poll the AI-status summary while anything is still pending/running so the
+  // counts (and the cards) reflect the worker's progress.
+  const aiSummary = trpc.media.aiSummary.useQuery({}, {
+    refetchInterval: (q) =>
+      q.state.data && (q.state.data.PENDING > 0 || q.state.data.RUNNING > 0) ? 4000 : false,
+  });
+  const busy = (aiSummary.data?.PENDING ?? 0) + (aiSummary.data?.RUNNING ?? 0) > 0;
+
+  // Keep the grid fresh while the worker is processing.
+  useEffect(() => {
+    if (!busy) return;
+    const t = setInterval(() => utils.media.list.invalidate(), 4000);
+    return () => clearInterval(t);
+  }, [busy, utils]);
+
+  const regenerate = trpc.media.regenerateMetadata.useMutation({
+    onSuccess: () => {
+      aiSummary.refetch();
+      utils.media.list.invalidate();
+    },
+  });
+
   const query = trpc.media.list.useInfiniteQuery(
     {
       limit: 24,
@@ -84,8 +109,50 @@ export function MediaLibraryView() {
             Upload your backlog once — PostPilot organizes it and builds your queue.
           </p>
         </div>
-        <UploadDialog onUploaded={refresh} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => regenerate.mutate({})}
+            disabled={regenerate.isPending}
+          >
+            {regenerate.isPending || busy ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            Generate metadata
+          </Button>
+          <UploadDialog onUploaded={refresh} />
+        </div>
       </div>
+
+      {aiSummary.data && aiSummary.data.total > 0 ? (
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+          <span className="text-foreground font-medium">AI metadata</span>
+          {busy ? (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {aiSummary.data.RUNNING} processing · {aiSummary.data.PENDING} queued
+            </span>
+          ) : (
+            <span>{aiSummary.data.COMPLETED} processed</span>
+          )}
+          {aiSummary.data.FAILED > 0 ? (
+            <button
+              type="button"
+              onClick={() => regenerate.mutate({ onlyFailed: true })}
+              className="text-destructive hover:underline"
+            >
+              Retry {aiSummary.data.FAILED} failed
+            </button>
+          ) : null}
+          {busy ? (
+            <span className="text-muted-foreground/70">
+              The AI worker drains the queue — counts update as it runs.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
@@ -212,6 +279,7 @@ function VideoCard({
   const badge = STATUS_BADGE[video.status];
   const duration = formatDuration(video.durationSec);
   const canPreview = Boolean(video.cdnUrl) && video.status === 'READY';
+  const aiBusy = video.aiStatus === 'PENDING' || video.aiStatus === 'RUNNING';
 
   return (
     <div className="group bg-card overflow-hidden rounded-lg border">
@@ -220,16 +288,49 @@ function VideoCard({
         onClick={canPreview ? onPreview : undefined}
         className="bg-muted relative flex aspect-[9/16] w-full items-center justify-center"
       >
-        {video.coverImageUrl ? (
+        {video.thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={video.coverImageUrl}
-            alt={video.title ?? 'Cover'}
+            src={video.thumbnailUrl}
+            alt={video.title ?? 'Thumbnail'}
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
           <Film className="text-muted-foreground h-8 w-8" />
         )}
+
+        <span className="absolute left-1.5 top-1.5 flex gap-1">
+          {video.isDuplicate ? (
+            <span
+              title="Possible duplicate"
+              className="flex items-center gap-0.5 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+            >
+              <Copy className="h-3 w-3" /> Dup
+            </span>
+          ) : null}
+          {aiBusy ? (
+            <span
+              title="AI is processing this video"
+              className="flex items-center rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" />
+            </span>
+          ) : video.aiStatus === 'COMPLETED' ? (
+            <span
+              title="AI metadata ready"
+              className="flex items-center rounded bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+            >
+              <Sparkles className="h-3 w-3" />
+            </span>
+          ) : video.aiStatus === 'FAILED' ? (
+            <span
+              title="AI processing failed"
+              className="flex items-center rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+            >
+              <TriangleAlert className="h-3 w-3" />
+            </span>
+          ) : null}
+        </span>
         {canPreview ? (
           <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
             <Play className="h-8 w-8 text-white" />

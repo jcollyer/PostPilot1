@@ -21,6 +21,8 @@
     "db:studio": "dotenv -e .env -- prisma studio --schema=packages/db/prisma/schema.prisma",
     "db:seed": "dotenv -e .env -- tsx packages/db/prisma/seed.ts",
     "refresh:connections": "dotenv -e .env -- npm --workspace=@saas/connectors run refresh:connections",
+    "ai:process": "dotenv -e .env -- npm --workspace=@saas/ai-pipeline run ai:process",
+    "ai:watch": "dotenv -e .env -- npm --workspace=@saas/ai-pipeline run ai:watch",
     "ngrok": "ngrok http --url=jointly-topical-leech.ngrok-free.app 3000"
   },
   "devDependencies": {

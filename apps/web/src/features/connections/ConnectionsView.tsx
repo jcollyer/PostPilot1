@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Plug, RefreshCw, Unplug } from 'lucide-react';
 
+import type { inferRouterOutputs } from '@trpc/server';
+import type { AppRouter } from '@saas/api';
 import { PLATFORM_LABELS, type Platform } from '@saas/types';
 
 import { Button } from '@/components/ui/button';
@@ -83,9 +85,7 @@ export function ConnectionsView({ connected, error }: ConnectionsViewProps) {
   );
 }
 
-type OverviewEntry = NonNullable<
-  ReturnType<typeof trpc.connections.overview.useQuery>['data']
->[number];
+type OverviewEntry = inferRouterOutputs<AppRouter>['connections']['overview'][number];
 
 function PlatformRow({
   entry,
@@ -187,7 +187,7 @@ function StatusBadge({ status }: { status: string }) {
     NONE: { label: 'Not connected', className: 'bg-slate-100 text-slate-700' },
     UNAVAILABLE: { label: 'Unavailable', className: 'bg-slate-100 text-slate-500' },
   };
-  const s = map[status] ?? map.NONE;
+  const s = map[status] ?? map.NONE!;
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.className}`}>{s.label}</span>
   );

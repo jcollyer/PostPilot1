@@ -69,7 +69,7 @@ export function AuthForm({ hasGoogle }: AuthFormProps) {
       }
 
       if (mode === 'forgot') {
-        const { error } = await authClient.forgetPassword({
+        const { error } = await authClient.requestPasswordReset({
           email: email.trim(),
           redirectTo: '/reset-password',
         });

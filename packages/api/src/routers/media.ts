@@ -2,12 +2,16 @@ import { TRPCError } from '@trpc/server';
 import { Prisma, type PrismaClient } from '@saas/db';
 import {
   abortUploadSchema,
+  aiSummarySchema,
   completeUploadSchema,
   confirmCoverUploadSchema,
   createUploadSessionSchema,
   initCoverUploadSchema,
   initUploadSchema,
   listVideosSchema,
+  regenerateMetadataSchema,
+  selectThumbnailSchema,
+  setPlatformMetaSchema,
   updateVideoMetadataSchema,
   videoIdSchema,
 } from '@saas/types';
@@ -47,7 +51,8 @@ async function ownedVideo(prisma: PrismaClient, userId: string, videoId: string)
   return video;
 }
 
-type VideoRecord = Prisma.VideoGetPayload<{ include: { category: true } }>;
+const VIDEO_INCLUDE = { category: true, selectedThumbnail: true } as const;
+type VideoRecord = Prisma.VideoGetPayload<{ include: typeof VIDEO_INCLUDE }>;
 
 /** Map a Video row to a safe client DTO (BigInt → number, never exposes keys we don't need). */
 function toVideoDto(v: VideoRecord) {
@@ -63,6 +68,8 @@ function toVideoDto(v: VideoRecord) {
     width: v.width,
     height: v.height,
     coverImageUrl: v.coverImageUrl,
+    // What the grid shows: a user cover wins, else the AI-selected thumbnail.
+    thumbnailUrl: v.coverImageUrl ?? v.selectedThumbnail?.url ?? null,
     title: v.title,
     caption: v.caption,
     hashtags: v.hashtags,
@@ -197,7 +204,7 @@ export const mediaRouter = router({
       const updated = await ctx.prisma.video.update({
         where: { id: video.id },
         data: { status: 'READY', cdnUrl: publicUrlForKey(video.storageKey) },
-        include: { category: true },
+        include: VIDEO_INCLUDE,
       });
 
       if (video.uploadSessionId) {
@@ -249,7 +256,7 @@ export const mediaRouter = router({
       const updated = await ctx.prisma.video.update({
         where: { id: video.id },
         data: { coverImageUrl: publicUrlForKey(video.coverImageKey) },
-        include: { category: true },
+        include: VIDEO_INCLUDE,
       });
       return toVideoDto(updated);
     }),
@@ -277,7 +284,7 @@ export const mediaRouter = router({
 
     const rows = await ctx.prisma.video.findMany({
       where,
-      include: { category: true },
+      include: VIDEO_INCLUDE,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: input.limit + 1,
       ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
@@ -297,8 +304,9 @@ export const mediaRouter = router({
       where: { id: input.videoId, userId: ctx.userId },
       include: {
         category: true,
+        selectedThumbnail: true,
         platformMeta: true,
-        thumbnailCandidates: { orderBy: { score: 'desc' } },
+        thumbnailCandidates: { orderBy: [{ score: 'desc' }, { frameTimeSec: 'asc' }] },
       },
     });
     if (!video) throw new TRPCError({ code: 'NOT_FOUND', message: 'Video not found.' });
@@ -350,7 +358,7 @@ export const mediaRouter = router({
       const updated = await ctx.prisma.video.update({
         where: { id: input.videoId },
         data,
-        include: { category: true },
+        include: VIDEO_INCLUDE,
       });
       return toVideoDto(updated);
     }),
@@ -372,5 +380,95 @@ export const mediaRouter = router({
     }
     await ctx.prisma.video.delete({ where: { id: video.id } });
     return { success: true as const };
+  }),
+
+  // -------------------------------------------------------------------------
+  // AI pipeline (heavy work runs in the worker — these just read state and
+  // enqueue; they never call ffmpeg / OpenAI in the request handler)
+  // -------------------------------------------------------------------------
+
+  /** Counts by AI status (optionally scoped to one upload session). */
+  aiSummary: protectedProcedure.input(aiSummarySchema).query(async ({ ctx, input }) => {
+    const where: Prisma.VideoWhereInput = { userId: ctx.userId };
+    if (input.uploadSessionId) where.uploadSessionId = input.uploadSessionId;
+    const grouped = await ctx.prisma.video.groupBy({
+      by: ['aiStatus'],
+      where,
+      _count: { _all: true },
+    });
+    const counts = { PENDING: 0, RUNNING: 0, COMPLETED: 0, FAILED: 0 };
+    for (const g of grouped) counts[g.aiStatus] = g._count._all;
+    return { ...counts, total: counts.PENDING + counts.RUNNING + counts.COMPLETED + counts.FAILED };
+  }),
+
+  /**
+   * Queue videos for the AI worker by setting their `aiStatus` back to PENDING.
+   * The worker (`npm run ai:process`) drains PENDING rows. Returns how many were
+   * queued. RUNNING videos are left alone so we don't interrupt in-flight work.
+   */
+  regenerateMetadata: protectedProcedure
+    .input(regenerateMetadataSchema)
+    .mutation(async ({ ctx, input }) => {
+      const where: Prisma.VideoWhereInput = {
+        userId: ctx.userId,
+        status: { in: ['READY', 'PROCESSING'] },
+        aiStatus: input.onlyFailed ? 'FAILED' : { not: 'RUNNING' },
+      };
+      if (input.videoId) where.id = input.videoId;
+      if (input.uploadSessionId) where.uploadSessionId = input.uploadSessionId;
+
+      const { count } = await ctx.prisma.video.updateMany({
+        where,
+        data: { aiStatus: 'PENDING' },
+      });
+      return { queued: count };
+    }),
+
+  /** Override the AI-chosen thumbnail with a specific candidate frame. */
+  selectThumbnail: protectedProcedure
+    .input(selectThumbnailSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
+      const thumb = await ctx.prisma.thumbnailCandidate.findFirst({
+        where: { id: input.thumbnailId, videoId: input.videoId },
+        select: { id: true },
+      });
+      if (!thumb) throw new TRPCError({ code: 'NOT_FOUND', message: 'Thumbnail not found.' });
+
+      const updated = await ctx.prisma.video.update({
+        where: { id: input.videoId },
+        data: { selectedThumbnailId: thumb.id },
+        include: VIDEO_INCLUDE,
+      });
+      return toVideoDto(updated);
+    }),
+
+  /** Edit one platform's caption variant; marks it edited so AI won't overwrite. */
+  setPlatformMeta: protectedProcedure
+    .input(setPlatformMetaSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
+      const data = {
+        title: input.title ?? null,
+        caption: input.caption ?? null,
+        hashtags: input.hashtags ?? [],
+        edited: true,
+      };
+      await ctx.prisma.videoPlatformMeta.upsert({
+        where: { videoId_platform: { videoId: input.videoId, platform: input.platform } },
+        create: { videoId: input.videoId, platform: input.platform, aiGenerated: false, ...data },
+        update: data,
+      });
+      return { success: true as const };
+    }),
+
+  /** Videos flagged as (near-)duplicates, with their matches — for a dupe review view. */
+  duplicates: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.prisma.video.findMany({
+      where: { userId: ctx.userId, isDuplicate: true },
+      include: VIDEO_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map(toVideoDto);
   }),
 });
