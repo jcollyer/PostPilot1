@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 // exhaust the database connection pool.
 declare global {
   // eslint-disable-next-line no-var
-  var __saas_prisma__: PrismaClient | undefined;
+  var __postpilot_prisma__: PrismaClient | undefined;
 }
 
 function createPrismaClient(): PrismaClient {
@@ -13,10 +13,10 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
-export const prisma: PrismaClient = globalThis.__saas_prisma__ ?? createPrismaClient();
+export const prisma: PrismaClient = globalThis.__postpilot_prisma__ ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.__saas_prisma__ = prisma;
+  globalThis.__postpilot_prisma__ = prisma;
 }
 
 export * from '@prisma/client';

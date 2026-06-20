@@ -1,4 +1,4 @@
-import { type PrismaClient } from '@saas/db';
+import { type PrismaClient } from '@postpilot/db';
 
 import { EMBEDDING_MODEL, getOpenAI } from '../config';
 import { writeEmbedding } from '../vectors';

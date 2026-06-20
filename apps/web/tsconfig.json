@@ -1,5 +1,5 @@
 {
-  "extends": "@saas/config/tsconfig.nextjs.json",
+  "extends": "@postpilot/config/tsconfig.nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

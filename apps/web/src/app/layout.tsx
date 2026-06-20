@@ -11,8 +11,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'SaaS Template',
-  description: 'A blank-slate starter with auth, database, and a typed API.',
+  title: 'PostPilot — Your content queue on autopilot',
+  description:
+    'Upload once. Queue it. Walk away. PostPilot auto-publishes your short-form videos to TikTok, Instagram Reels, and YouTube Shorts — and only pings you when it genuinely needs you.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

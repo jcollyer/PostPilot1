@@ -1,4 +1,4 @@
-import { NotificationChannel, prisma } from '@saas/db';
+import { NotificationChannel, prisma } from '@postpilot/db';
 
 import { sendEmail, sendPush, sendSms } from './channels';
 import { channelsFor, isEmailConfigured, isSmsConfigured, THROTTLE_WINDOW_MS } from './config';

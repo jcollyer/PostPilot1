@@ -1,0 +1,19 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "nixpacksPlan": {
+      "phases": {
+        "setup": {
+          "nixPkgs": ["nodejs_20", "ffmpeg"]
+        }
+      }
+    },
+    "buildCommand": "npm ci && npm run build --workspace=@postpilot/web"
+  },
+  "deploy": {
+    "startCommand": "npm run start --workspace=@postpilot/web",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}

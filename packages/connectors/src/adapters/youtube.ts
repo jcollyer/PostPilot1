@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 import { buildUrl, expiresAt, formBody, requestJson } from '../http';
 import {

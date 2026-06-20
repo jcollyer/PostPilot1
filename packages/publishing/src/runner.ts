@@ -1,6 +1,6 @@
-import { Platform, prisma, type PrismaClient } from '@saas/db';
-import { getFreshAccessToken, markNeedsReconnect } from '@saas/connectors';
-import { getObjectBuffer } from '@saas/storage';
+import { Platform, prisma, type PrismaClient } from '@postpilot/db';
+import { getFreshAccessToken, markNeedsReconnect } from '@postpilot/connectors';
+import { getObjectBuffer } from '@postpilot/storage';
 
 import { getPublishAdapter } from './adapters';
 import { backoffMs, MAX_POLLS, MAX_PUBLISH_ATTEMPTS, POLL_INTERVAL_MS } from './config';

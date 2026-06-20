@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { type PrismaClient } from '@saas/db';
+import { type PrismaClient } from '@postpilot/db';
 import {
   addVideosToQueueSchema,
   createScheduleSchema,
@@ -9,7 +9,7 @@ import {
   scheduleIdSchema,
   updateScheduleSchema,
   upcomingSchema,
-} from '@saas/types';
+} from '@postpilot/types';
 import {
   appendPosition,
   ensureQueue,
@@ -17,7 +17,7 @@ import {
   positionBetween,
   recomputeSchedule,
   smartArrangeQueue,
-} from '@saas/queue';
+} from '@postpilot/queue';
 
 import { protectedProcedure, router } from '../trpc';
 

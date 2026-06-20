@@ -1,4 +1,4 @@
-import type { Platform } from '@saas/db';
+import type { Platform } from '@postpilot/db';
 
 /** Everything an adapter needs to publish one video to one platform. */
 export interface PublishInput {

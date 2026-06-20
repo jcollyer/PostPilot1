@@ -5,7 +5,7 @@ import {
   decryptSecret,
   getRedirectUri,
   parsePlatform,
-} from '@saas/connectors';
+} from '@postpilot/connectors';
 
 import { getServerSession } from '@/server/session';
 import { resolveOrigin } from '@/server/request-origin';

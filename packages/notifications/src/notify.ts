@@ -1,4 +1,4 @@
-import { type NotificationType, type Platform, type PrismaClient } from '@saas/db';
+import { type NotificationType, type Platform, type PrismaClient } from '@postpilot/db';
 
 /**
  * Create a notification, deduplicated on `dedupeKey` while one is still PENDING

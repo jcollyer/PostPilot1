@@ -1,4 +1,4 @@
-import { prisma } from '@saas/db';
+import { prisma } from '@postpilot/db';
 
 import { recomputeSchedule } from '../scheduler';
 

@@ -1,5 +1,11 @@
 // Scheduling
-export { ensureQueue, recomputeSchedule, getUpcoming, type UpcomingPost } from './scheduler';
+export {
+  ensureQueue,
+  recomputeSchedule,
+  rescheduleAllActiveQueues,
+  getUpcoming,
+  type UpcomingPost,
+} from './scheduler';
 export { generateSlots, type Slot, type ScheduleRule } from './slots';
 
 // Smart ordering

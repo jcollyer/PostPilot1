@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Platform } from '@saas/db';
+import type { Platform } from '@postpilot/db';
 
 import { HORIZON_DAYS, MAX_SLOTS } from './config';
 

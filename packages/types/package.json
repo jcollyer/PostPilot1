@@ -1,5 +1,5 @@
 {
-  "name": "@saas/types",
+  "name": "@postpilot/types",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -15,7 +15,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@saas/config": "*",
+    "@postpilot/config": "*",
     "typescript": "^5.6.3"
   }
 }

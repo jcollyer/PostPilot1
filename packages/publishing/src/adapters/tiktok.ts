@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 import { TIKTOK_API_BASE, TIKTOK_DEFAULT_PRIVACY, type TikTokPrivacy } from '../config';
 import { fetchJson, PublishError } from '../http';

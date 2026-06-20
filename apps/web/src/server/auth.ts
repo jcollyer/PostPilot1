@@ -4,7 +4,7 @@ import { nextCookies } from 'better-auth/next-js';
 import { expo } from '@better-auth/expo';
 import { Resend } from 'resend';
 
-import { prisma } from '@saas/db';
+import { prisma } from '@postpilot/db';
 
 /**
  * Better Auth server instance — the single source of truth for authentication
@@ -24,7 +24,7 @@ import { prisma } from '@saas/db';
  * ever sees one session shape regardless of client.
  */
 
-const APP_SCHEME = process.env.MOBILE_APP_SCHEME ?? 'saas';
+const APP_SCHEME = process.env.MOBILE_APP_SCHEME ?? 'postpilot';
 const EMAIL_FROM = process.env.EMAIL_FROM ?? 'onboarding@resend.dev';
 
 const resend = process.env.AUTH_RESEND_KEY ? new Resend(process.env.AUTH_RESEND_KEY) : null;

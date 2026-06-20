@@ -16,7 +16,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 
-import { mediaStatusSchema, type MediaStatus } from '@saas/types';
+import { mediaStatusSchema, type MediaStatus } from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import {

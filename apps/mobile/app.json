@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "SaaS Template",
-    "slug": "saas-template",
+    "name": "PostPilot",
+    "slug": "postpilot",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
-    "scheme": "saas",
+    "scheme": "postpilot",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.saastemplate",
+      "bundleIdentifier": "com.postpilot.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.example.saastemplate",
+      "package": "com.postpilot.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

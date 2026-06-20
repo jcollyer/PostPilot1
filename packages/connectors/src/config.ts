@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 /** Public origin of the web app, used to build OAuth redirect URIs. */
 export function getBaseUrl(): string {

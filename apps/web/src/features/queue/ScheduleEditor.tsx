@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2, Plus, Trash2, X } from 'lucide-react';
 
-import { PLATFORM_LABELS, platformSchema, type Platform } from '@saas/types';
+import { PLATFORM_LABELS, platformSchema, type Platform } from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

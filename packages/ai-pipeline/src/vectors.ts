@@ -1,4 +1,4 @@
-import { type PrismaClient, Prisma } from '@saas/db';
+import { type PrismaClient, Prisma } from '@postpilot/db';
 
 import { EMBEDDING_DIMENSIONS } from './config';
 

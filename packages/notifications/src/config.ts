@@ -1,4 +1,4 @@
-import { NotificationChannel, NotificationType } from '@saas/db';
+import { NotificationChannel, NotificationType } from '@postpilot/db';
 
 /**
  * Notification routing + delivery config. One alerting system, several

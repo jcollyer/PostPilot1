@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft, Loader2, Plug, RefreshCw, Unplug } from 'lucide-react';
 
 import type { inferRouterOutputs } from '@trpc/server';
-import type { AppRouter } from '@saas/api';
-import { PLATFORM_LABELS, type Platform } from '@saas/types';
+import type { AppRouter } from '@postpilot/api';
+import { PLATFORM_LABELS, type Platform } from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 import type { PublishAdapter } from '../types';
 import { tiktokPublishAdapter } from './tiktok';

@@ -1,4 +1,4 @@
-import type { PlatformConnection } from '@saas/db';
+import type { PlatformConnection } from '@postpilot/db';
 
 import { encryptNullable } from './crypto';
 import type { OAuthTokens } from './types';

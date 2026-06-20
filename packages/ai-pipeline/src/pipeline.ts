@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 
-import { prisma } from '@saas/db';
-import { downloadToFile } from '@saas/storage';
+import { prisma } from '@postpilot/db';
+import { downloadToFile } from '@postpilot/storage';
 
 import { describeOpenAIError, isAiConfigured } from './config';
 import { extractGray9x8, probeMedia } from './ffmpeg';

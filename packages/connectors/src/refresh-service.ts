@@ -1,5 +1,5 @@
-import { Platform, prisma, type PlatformConnection } from '@saas/db';
-import { PLATFORM_LABELS } from '@saas/types';
+import { Platform, prisma, type PlatformConnection } from '@postpilot/db';
+import { PLATFORM_LABELS } from '@postpilot/types';
 
 import { getAdapter, SUPPORTED_PLATFORMS } from './adapters';
 import { decryptNullable } from './crypto';

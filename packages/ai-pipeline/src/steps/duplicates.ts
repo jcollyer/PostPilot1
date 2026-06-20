@@ -1,4 +1,4 @@
-import { DuplicateMethod, DuplicateType, type PrismaClient } from '@saas/db';
+import { DuplicateMethod, DuplicateType, type PrismaClient } from '@postpilot/db';
 
 import { hammingDistanceHex, phashSimilarity } from '../phash';
 import { findSimilarByEmbedding } from '../vectors';

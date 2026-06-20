@@ -1,6 +1,6 @@
-import { getConnectionOverview } from '@saas/connectors';
-import { computeQueueHealth } from '@saas/notifications';
-import { ensureQueue } from '@saas/queue';
+import { getConnectionOverview } from '@postpilot/connectors';
+import { computeQueueHealth } from '@postpilot/notifications';
+import { ensureQueue } from '@postpilot/queue';
 
 import { protectedProcedure, router } from '../trpc';
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { disconnectConnection, getConnectionOverview } from '@saas/connectors';
+import { disconnectConnection, getConnectionOverview } from '@postpilot/connectors';
 
 import { protectedProcedure, router } from '../trpc';
 

@@ -1,5 +1,5 @@
 {
-  "extends": "@saas/config/tsconfig.node.json",
+  "extends": "@postpilot/config/tsconfig.node.json",
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist"

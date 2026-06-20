@@ -1,0 +1,26 @@
+{
+  "name": "@postpilot/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "trigger:dev": "trigger.dev@latest dev",
+    "trigger:deploy": "trigger.dev@latest deploy",
+    "clean": "rm -rf node_modules .turbo .trigger"
+  },
+  "dependencies": {
+    "@postpilot/ai-pipeline": "*",
+    "@postpilot/connectors": "*",
+    "@postpilot/db": "*",
+    "@postpilot/notifications": "*",
+    "@postpilot/publishing": "*",
+    "@postpilot/queue": "*",
+    "@trigger.dev/sdk": "^4.0.0"
+  },
+  "devDependencies": {
+    "@postpilot/config": "*",
+    "@trigger.dev/build": "^4.0.0",
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3"
+  }
+}

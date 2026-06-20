@@ -1,5 +1,5 @@
 {
-  "name": "@saas/publishing",
+  "name": "@postpilot/publishing",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -14,13 +14,13 @@
     "clean": "rm -rf node_modules .turbo"
   },
   "dependencies": {
-    "@saas/connectors": "*",
-    "@saas/db": "*",
-    "@saas/storage": "*",
-    "@saas/types": "*"
+    "@postpilot/connectors": "*",
+    "@postpilot/db": "*",
+    "@postpilot/storage": "*",
+    "@postpilot/types": "*"
   },
   "devDependencies": {
-    "@saas/config": "*",
+    "@postpilot/config": "*",
     "@types/node": "^22.9.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"

@@ -1,5 +1,5 @@
 {
-  "name": "@saas/queue",
+  "name": "@postpilot/queue",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -13,12 +13,12 @@
     "clean": "rm -rf node_modules .turbo"
   },
   "dependencies": {
-    "@saas/db": "*",
-    "@saas/types": "*",
+    "@postpilot/db": "*",
+    "@postpilot/types": "*",
     "luxon": "^3.5.0"
   },
   "devDependencies": {
-    "@saas/config": "*",
+    "@postpilot/config": "*",
     "@types/luxon": "^3.4.2",
     "@types/node": "^22.9.0",
     "tsx": "^4.19.2",

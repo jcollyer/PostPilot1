@@ -1,4 +1,4 @@
-import { type PrismaClient, type Platform } from '@saas/db';
+import { type PrismaClient, type Platform } from '@postpilot/db';
 
 import { generateSlots, type ScheduleRule, type Slot } from './slots';
 
@@ -110,6 +110,24 @@ export async function recomputeSchedule(
   }
 
   return { scheduledItems, tasks };
+}
+
+/** Recompute the publish plan for every ACTIVE queue (cron entrypoint). */
+export async function rescheduleAllActiveQueues(
+  client: PrismaClient,
+): Promise<{ queues: number; scheduledItems: number; tasks: number }> {
+  const queues = await client.queue.findMany({
+    where: { status: 'ACTIVE' },
+    select: { id: true },
+  });
+  let scheduledItems = 0;
+  let tasks = 0;
+  for (const q of queues) {
+    const r = await recomputeSchedule(client, q.id);
+    scheduledItems += r.scheduledItems;
+    tasks += r.tasks;
+  }
+  return { queues: queues.length, scheduledItems, tasks };
 }
 
 export interface UpcomingPost {

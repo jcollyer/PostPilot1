@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 /**
  * Failure raised by publish adapters, classified so the runner knows how to

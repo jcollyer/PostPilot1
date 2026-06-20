@@ -1,4 +1,4 @@
-import { prisma, PrismaClient } from '@saas/db';
+import { prisma, PrismaClient } from '@postpilot/db';
 
 /**
  * Minimal session shape the API expects from its consumer. The Next.js web

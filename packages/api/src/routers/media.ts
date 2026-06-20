@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { Prisma, type PrismaClient } from '@saas/db';
+import { Prisma, type PrismaClient } from '@postpilot/db';
 import {
   abortUploadSchema,
   aiSummarySchema,
@@ -14,7 +14,7 @@ import {
   setPlatformMetaSchema,
   updateVideoMetadataSchema,
   videoIdSchema,
-} from '@saas/types';
+} from '@postpilot/types';
 import {
   abortMultipart,
   completeMultipart,
@@ -30,7 +30,7 @@ import {
   publicUrlForKey,
   sourceKey,
   videoPrefix,
-} from '@saas/storage';
+} from '@postpilot/storage';
 
 import { protectedProcedure, router } from '../trpc';
 

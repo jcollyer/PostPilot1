@@ -4,7 +4,7 @@ import { refreshDueConnections } from '../refresh-service';
  * Cron entrypoint for proactive token refresh.
  *
  * Run on a schedule (e.g. hourly). For now it's a plain runnable script:
- *   npm --workspace=@saas/connectors run refresh:connections
+ *   npm --workspace=@postpilot/connectors run refresh:connections
  *
  * In the background-jobs chunk this same `refreshDueConnections()` function is
  * wrapped in a durable Trigger.dev cron task — the logic does not change.

@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 /**
  * Publishing configuration. Visibility defaults are intentionally conservative

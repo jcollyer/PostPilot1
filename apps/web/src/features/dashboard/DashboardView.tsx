@@ -12,7 +12,7 @@ import {
   Loader2,
   Pause,
 } from 'lucide-react';
-import { PLATFORM_LABELS, type Platform } from '@saas/types';
+import { PLATFORM_LABELS, type Platform } from '@postpilot/types';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { trpc } from '@/lib/trpc/client';

@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { CheckCircle2, Loader2, Upload, X, AlertCircle } from 'lucide-react';
 
-import { ACCEPTED_VIDEO_MIME_TYPES, MAX_VIDEO_BYTES } from '@saas/types';
+import { ACCEPTED_VIDEO_MIME_TYPES, MAX_VIDEO_BYTES } from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import {

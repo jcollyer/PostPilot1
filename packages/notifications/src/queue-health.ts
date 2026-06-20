@@ -1,4 +1,4 @@
-import { prisma, type PrismaClient } from '@saas/db';
+import { prisma, type PrismaClient } from '@postpilot/db';
 
 import { QUEUE_LOW_THRESHOLD_DAYS } from './config';
 import { createNotification } from './notify';

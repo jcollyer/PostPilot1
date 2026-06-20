@@ -1,5 +1,5 @@
 {
-  "name": "@saas/ai-pipeline",
+  "name": "@postpilot/ai-pipeline",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -14,13 +14,13 @@
     "clean": "rm -rf node_modules .turbo"
   },
   "dependencies": {
-    "@saas/db": "*",
-    "@saas/storage": "*",
-    "@saas/types": "*",
+    "@postpilot/db": "*",
+    "@postpilot/storage": "*",
+    "@postpilot/types": "*",
     "openai": "^4.73.0"
   },
   "devDependencies": {
-    "@saas/config": "*",
+    "@postpilot/config": "*",
     "@types/node": "^22.9.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"

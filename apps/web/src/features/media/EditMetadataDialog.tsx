@@ -9,7 +9,7 @@ import {
   PLATFORM_LABELS,
   platformSchema,
   type Platform,
-} from '@saas/types';
+} from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import {

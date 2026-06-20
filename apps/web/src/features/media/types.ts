@@ -1,5 +1,5 @@
 import type { inferRouterOutputs } from '@trpc/server';
-import type { AppRouter } from '@saas/api';
+import type { AppRouter } from '@postpilot/api';
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 

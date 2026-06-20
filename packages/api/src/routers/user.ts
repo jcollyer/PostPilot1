@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 
-import { deleteAccountSchema, updateProfileSchema } from '@saas/types';
+import { deleteAccountSchema, updateProfileSchema } from '@postpilot/types';
 
 import { protectedProcedure, publicProcedure, router } from '../trpc';
 

@@ -1,4 +1,4 @@
-import { Platform, prisma, type PlatformConnection } from '@saas/db';
+import { Platform, prisma, type PlatformConnection } from '@postpilot/db';
 
 import { getAdapter, isPlatformConfigured, SUPPORTED_PLATFORMS } from './adapters';
 import { decryptNullable, decryptSecret, generateCodeVerifier, generateState } from './crypto';

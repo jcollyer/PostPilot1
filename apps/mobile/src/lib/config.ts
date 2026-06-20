@@ -17,4 +17,4 @@ const fallbackDevUrl = () => {
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? fallbackDevUrl();
 
 /** Custom URL scheme registered in app.json. Used for OAuth redirects. */
-export const APP_SCHEME = 'saas';
+export const APP_SCHEME = 'postpilot';

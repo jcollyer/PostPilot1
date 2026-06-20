@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 import { YOUTUBE_DEFAULT_PRIVACY, YOUTUBE_UPLOAD_BASE } from '../config';
 import { PublishError, rawFetch } from '../http';

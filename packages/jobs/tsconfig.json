@@ -1,0 +1,11 @@
+{
+  "extends": "@postpilot/config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "trigger.config.ts"]
+}

@@ -1,5 +1,5 @@
 {
-  "name": "@saas/mobile",
+  "name": "@postpilot/mobile",
   "version": "0.0.0",
   "private": true,
   "main": "expo-router/entry",
@@ -14,8 +14,8 @@
   "dependencies": {
     "@better-auth/expo": "^1.2.8",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@saas/api": "*",
-    "@saas/types": "*",
+    "@postpilot/api": "*",
+    "@postpilot/types": "*",
     "@tanstack/react-query": "^5.59.20",
     "better-auth": "^1.2.8",
     "@trpc/client": "^11.0.0-rc.660",
@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@saas/config": "*",
+    "@postpilot/config": "*",
     "@types/react": "~19.1.0",
     "eas-cli": "^19.0.8",
     "tailwindcss": "^3.4.14",

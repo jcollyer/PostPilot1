@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { encryptSecret, parsePlatform, startConnection } from '@saas/connectors';
+import { encryptSecret, parsePlatform, startConnection } from '@postpilot/connectors';
 
 import { getServerSession } from '@/server/session';
 import { resolveOrigin } from '@/server/request-origin';

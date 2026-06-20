@@ -1,5 +1,5 @@
-import { type PrismaClient } from '@saas/db';
-import { putObject, publicUrlForKey, thumbnailKey } from '@saas/storage';
+import { type PrismaClient } from '@postpilot/db';
+import { putObject, publicUrlForKey, thumbnailKey } from '@postpilot/storage';
 
 import { extractFrame } from '../ffmpeg';
 import type { MediaInfo } from '../ffmpeg';

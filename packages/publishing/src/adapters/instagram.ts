@@ -1,4 +1,4 @@
-import { Platform } from '@saas/db';
+import { Platform } from '@postpilot/db';
 
 import { IG_GRAPH_BASE, IG_GRAPH_VERSION } from '../config';
 import { PublishError, rawFetch } from '../http';

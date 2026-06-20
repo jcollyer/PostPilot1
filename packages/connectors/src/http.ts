@@ -1,4 +1,4 @@
-import type { Platform } from '@saas/db';
+import type { Platform } from '@postpilot/db';
 
 import { OAuthError } from './types';
 

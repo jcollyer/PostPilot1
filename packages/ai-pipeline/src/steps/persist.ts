@@ -1,4 +1,4 @@
-import { Platform, type PrismaClient } from '@saas/db';
+import { Platform, type PrismaClient } from '@postpilot/db';
 
 import type { GeneratedMetadata } from './metadata';
 

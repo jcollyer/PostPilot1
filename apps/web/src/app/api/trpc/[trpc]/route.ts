@@ -1,7 +1,7 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import type { NextRequest } from 'next/server';
 
-import { appRouter, createTRPCContext, type SessionLike } from '@saas/api';
+import { appRouter, createTRPCContext, type SessionLike } from '@postpilot/api';
 import { auth } from '@/server/auth';
 
 /**

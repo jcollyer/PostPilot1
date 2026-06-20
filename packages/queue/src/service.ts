@@ -1,4 +1,4 @@
-import { type PrismaClient } from '@saas/db';
+import { type PrismaClient } from '@postpilot/db';
 
 import { readEmbeddings } from './embeddings';
 import { orderBySpacing, type OrderableItem } from './ordering';

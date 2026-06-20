@@ -1,4 +1,4 @@
-import { type PrismaClient, Prisma } from '@saas/db';
+import { type PrismaClient, Prisma } from '@postpilot/db';
 
 /**
  * Bulk-read video embeddings for smart ordering. The `embedding` column is

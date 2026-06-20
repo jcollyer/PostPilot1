@@ -1,4 +1,4 @@
-import type { Platform } from '@saas/db';
+import type { Platform } from '@postpilot/db';
 
 /** Tokens + expiries returned by a platform's OAuth endpoints. */
 export interface OAuthTokens {

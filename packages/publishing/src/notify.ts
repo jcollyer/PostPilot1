@@ -1,4 +1,4 @@
-import { type Platform, type PrismaClient, type NotificationType } from '@saas/db';
+import { type Platform, type PrismaClient, type NotificationType } from '@postpilot/db';
 
 import { PLATFORM_NAME } from './config';
 

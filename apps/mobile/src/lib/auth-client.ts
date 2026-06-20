@@ -8,7 +8,7 @@ import { API_URL, APP_SCHEME } from './config';
  * Better Auth client for the mobile app.
  *
  * The Expo plugin:
- *   - persists the session cookie in SecureStore (key prefix `saas`),
+ *   - persists the session cookie in SecureStore (key prefix `postpilot`),
  *   - attaches it to this client's own requests, and
  *   - exposes `authClient.getCookie()` so we can forward the same cookie on
  *     our tRPC requests (see TRPCProvider).
@@ -21,7 +21,7 @@ export const authClient = createAuthClient({
   plugins: [
     expoClient({
       scheme: APP_SCHEME,
-      storagePrefix: 'saas',
+      storagePrefix: 'postpilot',
       storage: SecureStore,
     }),
   ],
