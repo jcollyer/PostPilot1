@@ -15,6 +15,7 @@
   "dependencies": {
     "@saas/connectors": "*",
     "@saas/db": "*",
+    "@saas/notifications": "*",
     "@saas/queue": "*",
     "@saas/storage": "*",
     "@saas/types": "*",

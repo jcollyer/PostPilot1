@@ -4,6 +4,7 @@ import { connectionsRouter } from './routers/connections';
 import { mediaRouter } from './routers/media';
 import { queueRouter } from './routers/queue';
 import { notificationsRouter } from './routers/notifications';
+import { dashboardRouter } from './routers/dashboard';
 
 export const appRouter = router({
   user: userRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   media: mediaRouter,
   queue: queueRouter,
   notifications: notificationsRouter,
+  dashboard: dashboardRouter,
 });
 
 export type AppRouter = typeof appRouter;
