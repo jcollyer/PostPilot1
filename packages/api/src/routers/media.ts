@@ -1,11 +1,13 @@
 import { TRPCError } from '@trpc/server';
-import { Prisma, type PrismaClient } from '@postpilot/db';
+import { Platform, Prisma, type PrismaClient } from '@postpilot/db';
 import {
   abortUploadSchema,
   aiSummarySchema,
   completeUploadSchema,
   confirmCoverUploadSchema,
   createUploadSessionSchema,
+  DEFAULT_TIKTOK_OPTIONS,
+  evaluateTikTokRequirements,
   initCoverUploadSchema,
   initUploadSchema,
   listVideosSchema,
@@ -13,6 +15,9 @@ import {
   selectThumbnailSchema,
   setCategoryManySchema,
   setPlatformMetaSchema,
+  setTiktokMetaSchema,
+  type TikTokPostOptions,
+  type TikTokPrivacyLevel,
   updateVideoMetadataSchema,
   videoIdSchema,
   videoIdsSchema,
@@ -53,11 +58,51 @@ async function ownedVideo(prisma: PrismaClient, userId: string, videoId: string)
   return video;
 }
 
-const VIDEO_INCLUDE = { category: true, selectedThumbnail: true } as const;
+const VIDEO_INCLUDE = {
+  category: true,
+  selectedThumbnail: true,
+  // Only the TikTok row is needed to compute the "requires user input" gate.
+  platformMeta: { where: { platform: Platform.TIKTOK } },
+} as const;
 type VideoRecord = Prisma.VideoGetPayload<{ include: typeof VIDEO_INCLUDE }>;
 
+type PlatformMetaRecord = Prisma.VideoPlatformMetaGetPayload<true>;
+
+/** Whether the caller has a usable (ACTIVE) TikTok connection right now. */
+async function hasActiveTikTok(prisma: PrismaClient, userId: string): Promise<boolean> {
+  const conn = await prisma.platformConnection.findFirst({
+    where: { userId, platform: Platform.TIKTOK, status: 'ACTIVE' },
+    select: { id: true },
+  });
+  return Boolean(conn);
+}
+
+/** Map a stored TikTok platform-meta row (or none) to the shared options shape. */
+function tiktokOptionsFromMeta(meta: PlatformMetaRecord | undefined): TikTokPostOptions {
+  if (!meta) return { ...DEFAULT_TIKTOK_OPTIONS };
+  return {
+    privacy: (meta.tiktokPrivacy as TikTokPrivacyLevel | null) ?? null,
+    allowComment: meta.tiktokAllowComment,
+    allowDuet: meta.tiktokAllowDuet,
+    allowStitch: meta.tiktokAllowStitch,
+    commercialDisclosure: meta.tiktokCommercial,
+    brandOrganic: meta.tiktokBrandOrganic,
+    brandedContent: meta.tiktokBrandedContent,
+  };
+}
+
+/**
+ * A video "requires user input" when TikTok is connected and its stored TikTok
+ * options don't yet satisfy the publishing rules (e.g. no privacy chosen).
+ */
+function tiktokNeedsInput(v: VideoRecord, tiktokConnected: boolean): boolean {
+  if (!tiktokConnected) return false;
+  const opts = tiktokOptionsFromMeta(v.platformMeta.find((m) => m.platform === Platform.TIKTOK));
+  return evaluateTikTokRequirements(opts).length > 0;
+}
+
 /** Map a Video row to a safe client DTO (BigInt → number, never exposes keys we don't need). */
-function toVideoDto(v: VideoRecord) {
+function toVideoDto(v: VideoRecord, tiktokConnected = false) {
   return {
     id: v.id,
     status: v.status,
@@ -81,6 +126,8 @@ function toVideoDto(v: VideoRecord) {
       : null,
     uploadSessionId: v.uploadSessionId,
     isDuplicate: v.isDuplicate,
+    // True when the user must supply TikTok details before this can be queued.
+    tiktokNeedsInput: tiktokNeedsInput(v, tiktokConnected),
     createdAt: v.createdAt,
     updatedAt: v.updatedAt,
   };
@@ -301,7 +348,8 @@ export const mediaRouter = router({
       nextCursor = rows.pop()!.id;
     }
 
-    return { items: rows.map(toVideoDto), nextCursor };
+    const tiktokConnected = await hasActiveTikTok(ctx.prisma, ctx.userId);
+    return { items: rows.map((r) => toVideoDto(r, tiktokConnected)), nextCursor };
   }),
 
   /** Full detail for one video, including per-platform metadata + thumbnails. */
@@ -316,10 +364,16 @@ export const mediaRouter = router({
       },
     });
     if (!video) throw new TRPCError({ code: 'NOT_FOUND', message: 'Video not found.' });
+    const tiktokConnected = await hasActiveTikTok(ctx.prisma, ctx.userId);
+    const tiktokMeta = video.platformMeta.find((m) => m.platform === Platform.TIKTOK);
     return {
-      ...toVideoDto(video),
+      ...toVideoDto(video, tiktokConnected),
       transcript: video.transcript,
       selectedThumbnailId: video.selectedThumbnailId,
+      // Whether TikTok is connected at all (drives whether the editor enforces
+      // TikTok requirements) and the current stored TikTok options.
+      tiktokConnected,
+      tiktok: tiktokOptionsFromMeta(tiktokMeta),
       platformMeta: video.platformMeta.map((m) => ({
         platform: m.platform,
         title: m.title,
@@ -526,6 +580,55 @@ export const mediaRouter = router({
       return { success: true as const };
     }),
 
+  /**
+   * Save the TikTok Direct Post options (privacy, interaction abilities,
+   * commercial disclosure) on the video's TikTok platform-meta row. Returns the
+   * recomputed gate so the client can immediately reflect whether the video is
+   * still blocked from the queue.
+   */
+  setTiktokMeta: protectedProcedure
+    .input(setTiktokMetaSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
+
+      // Enforce the "branded content can't be private" rule server-side too.
+      const reasons = evaluateTikTokRequirements({
+        privacy: input.privacy,
+        allowComment: input.allowComment,
+        allowDuet: input.allowDuet,
+        allowStitch: input.allowStitch,
+        commercialDisclosure: input.commercialDisclosure,
+        brandOrganic: input.brandOrganic,
+        brandedContent: input.brandedContent,
+      });
+
+      const data = {
+        tiktokPrivacy: input.privacy,
+        tiktokAllowComment: input.allowComment,
+        tiktokAllowDuet: input.allowDuet,
+        tiktokAllowStitch: input.allowStitch,
+        tiktokCommercial: input.commercialDisclosure,
+        tiktokBrandOrganic: input.brandOrganic,
+        tiktokBrandedContent: input.brandedContent,
+        edited: true,
+      };
+      await ctx.prisma.videoPlatformMeta.upsert({
+        where: { videoId_platform: { videoId: input.videoId, platform: Platform.TIKTOK } },
+        // `hashtags` is a non-nullable array with no DB default, so it must be
+        // set when creating the row (only the update path leaves captions/tags
+        // untouched).
+        create: {
+          videoId: input.videoId,
+          platform: Platform.TIKTOK,
+          aiGenerated: false,
+          hashtags: [],
+          ...data,
+        },
+        update: data,
+      });
+      return { success: true as const, blockingReasons: reasons };
+    }),
+
   /** Videos flagged as (near-)duplicates, with their matches — for a dupe review view. */
   duplicates: protectedProcedure.query(async ({ ctx }) => {
     const rows = await ctx.prisma.video.findMany({
@@ -533,6 +636,7 @@ export const mediaRouter = router({
       include: VIDEO_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map(toVideoDto);
+    const tiktokConnected = await hasActiveTikTok(ctx.prisma, ctx.userId);
+    return rows.map((r) => toVideoDto(r, tiktokConnected));
   }),
 });

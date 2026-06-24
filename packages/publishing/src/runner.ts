@@ -104,6 +104,19 @@ function buildInput(task: TaskWithRelations, accessToken: string): PublishInput 
     title: meta?.title || video.title || '',
     caption: meta?.caption || video.caption || '',
     hashtags: (meta?.hashtags?.length ? meta.hashtags : video.hashtags) ?? [],
+    // TikTok Direct Post options the creator set in the editor.
+    tiktok:
+      task.platform === Platform.TIKTOK && meta
+        ? {
+            privacy: meta.tiktokPrivacy,
+            allowComment: meta.tiktokAllowComment,
+            allowDuet: meta.tiktokAllowDuet,
+            allowStitch: meta.tiktokAllowStitch,
+            commercialDisclosure: meta.tiktokCommercial,
+            brandOrganic: meta.tiktokBrandOrganic,
+            brandedContent: meta.tiktokBrandedContent,
+          }
+        : null,
   };
 }
 

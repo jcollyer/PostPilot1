@@ -2,8 +2,14 @@
 export { publishDueTasks, processTask, type PublishRunResult } from './runner';
 
 // Adapters (Publish(Video) per platform)
-export { getPublishAdapter } from './adapters';
-export type { PublishAdapter, PublishInput, PublishResult, PollResult } from './types';
+export { getPublishAdapter, fetchTikTokCreatorInfo, type TikTokCreatorInfo } from './adapters';
+export type {
+  PublishAdapter,
+  PublishInput,
+  PublishResult,
+  PollResult,
+  TikTokPublishOptions,
+} from './types';
 
 // Errors + config
 export { PublishError } from './http';

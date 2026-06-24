@@ -394,6 +394,23 @@ model VideoPlatformMeta {
   // Whether this row was AI-generated and whether the user has edited it.
   aiGenerated Boolean @default(false)
   edited      Boolean @default(false)
+
+  // ---- TikTok Direct Post options (TikTok platform rows only) ----
+  // Privacy level the creator must MANUALLY choose — TikTok mandates no
+  // default, so this is null until the user picks one. Stored as a string to
+  // track whatever `privacy_level_options` creator_info returns
+  // (PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY).
+  tiktokPrivacy String?
+  // Interaction abilities. TikTok requires these OFF by default; the user opts in.
+  tiktokAllowComment Boolean @default(false)
+  tiktokAllowDuet    Boolean @default(false)
+  tiktokAllowStitch  Boolean @default(false)
+  // Commercial content disclosure (off by default). When on, at least one of
+  // the two brand flags below must be set.
+  tiktokCommercial     Boolean @default(false) // disclosure toggle
+  tiktokBrandOrganic   Boolean @default(false) // "Your brand" → Brand Organic
+  tiktokBrandedContent Boolean @default(false) // "Branded content" → Paid partnership
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

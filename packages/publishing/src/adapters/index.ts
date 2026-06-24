@@ -1,7 +1,7 @@
 import { Platform } from '@postpilot/db';
 
 import type { PublishAdapter } from '../types';
-import { tiktokPublishAdapter } from './tiktok';
+import { tiktokPublishAdapter, fetchTikTokCreatorInfo, type TikTokCreatorInfo } from './tiktok';
 import { instagramPublishAdapter } from './instagram';
 import { youtubePublishAdapter } from './youtube';
 
@@ -17,3 +17,4 @@ export function getPublishAdapter(platform: Platform): PublishAdapter {
 }
 
 export { tiktokPublishAdapter, instagramPublishAdapter, youtubePublishAdapter };
+export { fetchTikTokCreatorInfo, type TikTokCreatorInfo };

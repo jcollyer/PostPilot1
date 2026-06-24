@@ -93,8 +93,16 @@ export function MediaLibraryView() {
   const refresh = () => utils.media.list.invalidate();
 
   const remove = trpc.media.remove.useMutation({ onSuccess: refresh });
+  const [queueMsg, setQueueMsg] = useState<string | null>(null);
   const addToQueue = trpc.queue.addVideos.useMutation({
-    onSuccess: () => utils.queue.invalidate(),
+    onSuccess: (res) => {
+      utils.queue.invalidate();
+      setQueueMsg(
+        res.blocked > 0
+          ? `${res.blocked} video${res.blocked === 1 ? '' : 's'} couldn’t be queued — add the required TikTok details first.`
+          : null,
+      );
+    },
   });
   const [queuedIds, setQueuedIds] = useState<Set<string>>(new Set());
 
@@ -145,12 +153,24 @@ export function MediaLibraryView() {
     },
   });
 
+  // Videos in the current selection still missing required TikTok input.
+  const blockedSelectedCount = useMemo(
+    () => videos.filter((v) => selectedIds.has(v.id) && v.tiktokNeedsInput).length,
+    [videos, selectedIds],
+  );
+  const addableSelectedCount = selectedCount - blockedSelectedCount;
+
   const bulkAddToQueue = () => {
+    // Only optimistically mark the ones that will actually be queued; the
+    // server skips any that still need TikTok details.
     const ids = [...selectedIds];
+    const addable = videos
+      .filter((v) => selectedIds.has(v.id) && !v.tiktokNeedsInput)
+      .map((v) => v.id);
     addToQueue.mutate({ videoIds: ids });
     setQueuedIds((prev) => {
       const next = new Set(prev);
-      ids.forEach((id) => next.add(id));
+      addable.forEach((id) => next.add(id));
       return next;
     });
     clearSelection();
@@ -219,6 +239,23 @@ export function MediaLibraryView() {
         </div>
       ) : null}
 
+      {queueMsg ? (
+        <div className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span className="flex items-center gap-2">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            {queueMsg}
+          </span>
+          <button
+            type="button"
+            onClick={() => setQueueMsg(null)}
+            className="text-amber-700 hover:text-amber-900"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
           <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
@@ -275,7 +312,26 @@ export function MediaLibraryView() {
           </button>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={bulkAddToQueue} disabled={bulkBusy}>
+            {blockedSelectedCount > 0 ? (
+              <span
+                className="flex items-center gap-1 text-xs text-amber-600"
+                title="These videos need TikTok details before they can be queued."
+              >
+                <TriangleAlert className="h-3.5 w-3.5" />
+                {blockedSelectedCount} need TikTok details
+              </span>
+            ) : null}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={bulkAddToQueue}
+              disabled={bulkBusy || addableSelectedCount === 0}
+              title={
+                addableSelectedCount === 0
+                  ? 'Every selected video still needs TikTok details.'
+                  : undefined
+              }
+            >
               <ListPlus className="mr-2 h-4 w-4" />
               Add to queue
             </Button>
@@ -506,6 +562,14 @@ function VideoCard({
         )}
 
         <span className="absolute left-1.5 top-1.5 flex gap-1">
+          {video.tiktokNeedsInput ? (
+            <span
+              title="Needs TikTok details before queueing"
+              className="flex items-center gap-0.5 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+            >
+              <TriangleAlert className="h-3 w-3" /> Input
+            </span>
+          ) : null}
           {video.isDuplicate ? (
             <span
               title="Possible duplicate"
@@ -570,17 +634,38 @@ function VideoCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {video.status === 'READY' ? (
-                <DropdownMenuItem
-                  onClick={onAddToQueue}
-                  disabled={queued}
-                  className="cursor-pointer"
-                >
-                  {queued ? (
-                    <Check className="mr-2 h-4 w-4 text-emerald-600" />
-                  ) : (
-                    <ListPlus className="mr-2 h-4 w-4" />
-                  )}
-                  {queued ? 'Added to queue' : 'Add to queue'}
+                video.tiktokNeedsInput ? (
+                  <DropdownMenuItem
+                    disabled
+                    className="cursor-not-allowed"
+                    title="This video needs TikTok details before it can be queued."
+                  >
+                    <TriangleAlert className="mr-2 h-4 w-4 shrink-0 text-amber-600" />
+                    <span className="flex flex-col">
+                      <span>Add to queue</span>
+                      <span className="text-muted-foreground text-[11px]">
+                        Requires TikTok details
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={onAddToQueue}
+                    disabled={queued}
+                    className="cursor-pointer"
+                  >
+                    {queued ? (
+                      <Check className="mr-2 h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <ListPlus className="mr-2 h-4 w-4" />
+                    )}
+                    {queued ? 'Added to queue' : 'Add to queue'}
+                  </DropdownMenuItem>
+                )
+              ) : null}
+              {video.tiktokNeedsInput && video.status === 'READY' ? (
+                <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
+                  <Pencil className="mr-2 h-4 w-4" /> Add TikTok details
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem onClick={onEdit} className="cursor-pointer">

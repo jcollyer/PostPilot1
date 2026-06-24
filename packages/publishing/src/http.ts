@@ -70,7 +70,10 @@ export async function rawFetch(url: string, opts: RequestOptions): Promise<Respo
       method: opts.method ?? 'GET',
       headers: opts.headers,
       // Buffer extends Uint8Array; both (and string) are valid fetch bodies.
-      body: opts.body as string | Uint8Array | undefined,
+      // Cast to the ambient fetch body type so this compiles under both the
+      // Node lib (server packages) and the DOM lib (when this package is pulled
+      // into the web app's typecheck), which model `BodyInit` differently.
+      body: opts.body as unknown as RequestInit['body'],
     });
   } catch (err) {
     throw new PublishError(`${opts.context}: network error ${(err as Error)?.message ?? ''}`, {

@@ -17,6 +17,20 @@ export interface PublishInput {
   title: string;
   caption: string;
   hashtags: string[];
+  /** TikTok-only posting options the creator set in the editor (null elsewhere). */
+  tiktok?: TikTokPublishOptions | null;
+}
+
+/** TikTok Direct Post options resolved from the video's TikTok platform-meta row. */
+export interface TikTokPublishOptions {
+  /** Creator-selected privacy level (validated against creator_info options). */
+  privacy: string | null;
+  allowComment: boolean;
+  allowDuet: boolean;
+  allowStitch: boolean;
+  commercialDisclosure: boolean;
+  brandOrganic: boolean;
+  brandedContent: boolean;
 }
 
 /** Result of an initial publish call. */

@@ -1,12 +1,14 @@
 import { TRPCError } from '@trpc/server';
-import { type PrismaClient } from '@postpilot/db';
+import { Platform, type PrismaClient } from '@postpilot/db';
 import {
   addVideosToQueueSchema,
   createScheduleSchema,
+  evaluateTikTokRequirements,
   moveQueueItemSchema,
   queueItemIdSchema,
   retryPublishSchema,
   scheduleIdSchema,
+  type TikTokPrivacyLevel,
   updateScheduleSchema,
   upcomingSchema,
 } from '@postpilot/types';
@@ -98,20 +100,64 @@ export const queueRouter = router({
     };
   }),
 
-  /** Append READY videos to the queue (skips ones already queued / not ready). */
+  /**
+   * Append READY videos to the queue. Skips ones already queued, not ready, or
+   * blocked because they still need TikTok details (only when TikTok is
+   * connected). Returns counts so the client can explain what happened.
+   */
   addVideos: protectedProcedure.input(addVideosToQueueSchema).mutation(async ({ ctx, input }) => {
     const queue = await userQueue(ctx.prisma, ctx.userId);
 
+    const tiktokConnected = Boolean(
+      await ctx.prisma.platformConnection.findFirst({
+        where: { userId: ctx.userId, platform: Platform.TIKTOK, status: 'ACTIVE' },
+        select: { id: true },
+      }),
+    );
+
     const videos = await ctx.prisma.video.findMany({
       where: { id: { in: input.videoIds }, userId: ctx.userId, status: 'READY' },
-      select: { id: true },
+      select: {
+        id: true,
+        platformMeta: {
+          where: { platform: Platform.TIKTOK },
+          select: {
+            tiktokPrivacy: true,
+            tiktokAllowComment: true,
+            tiktokAllowDuet: true,
+            tiktokAllowStitch: true,
+            tiktokCommercial: true,
+            tiktokBrandOrganic: true,
+            tiktokBrandedContent: true,
+          },
+        },
+      },
     });
     const existing = await ctx.prisma.queueItem.findMany({
       where: { queueId: queue.id, videoId: { in: input.videoIds } },
       select: { videoId: true },
     });
     const already = new Set(existing.map((e) => e.videoId));
-    const toAdd = videos.filter((v) => !already.has(v.id));
+
+    // Block videos that still require TikTok input (privacy not chosen, etc.).
+    const needsInput = (v: (typeof videos)[number]): boolean => {
+      if (!tiktokConnected) return false;
+      const m = v.platformMeta[0];
+      return (
+        evaluateTikTokRequirements({
+          privacy: (m?.tiktokPrivacy as TikTokPrivacyLevel | null) ?? null,
+          allowComment: m?.tiktokAllowComment ?? false,
+          allowDuet: m?.tiktokAllowDuet ?? false,
+          allowStitch: m?.tiktokAllowStitch ?? false,
+          commercialDisclosure: m?.tiktokCommercial ?? false,
+          brandOrganic: m?.tiktokBrandOrganic ?? false,
+          brandedContent: m?.tiktokBrandedContent ?? false,
+        }).length > 0
+      );
+    };
+
+    const blocked = videos.filter((v) => !already.has(v.id) && needsInput(v));
+    const toAdd = videos.filter((v) => !already.has(v.id) && !needsInput(v));
 
     let maxPos =
       (
@@ -129,7 +175,12 @@ export const queueRouter = router({
     }
 
     await recomputeSchedule(ctx.prisma, queue.id);
-    return { added: toAdd.length, skipped: input.videoIds.length - toAdd.length };
+    return {
+      added: toAdd.length,
+      skipped: input.videoIds.length - toAdd.length,
+      // Of the skipped, how many were held back for missing TikTok input.
+      blocked: blocked.length,
+    };
   }),
 
   /** Remove an item from the queue. */

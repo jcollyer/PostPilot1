@@ -51,22 +51,86 @@ function pickPrivacy(options: string[] | undefined): TikTokPrivacy {
   return (opts[0] as TikTokPrivacy) ?? 'SELF_ONLY';
 }
 
+/** Shape of the fields we surface from TikTok's `creator_info` endpoint. */
+export interface TikTokCreatorInfo {
+  creatorNickname: string | null;
+  creatorUsername: string | null;
+  creatorAvatarUrl: string | null;
+  privacyLevelOptions: string[];
+  commentDisabled: boolean;
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
+  maxVideoPostDurationSec: number | null;
+  /** Derived: TikTok will accept a new post right now (has at least one privacy option). */
+  canPost: boolean;
+}
+
+/**
+ * Query the latest creator info for a connected TikTok account. API Clients
+ * must call this when rendering the "Post to TikTok" page so the privacy
+ * options, disabled interactions, and posting eligibility are always current.
+ */
+export async function fetchTikTokCreatorInfo(accessToken: string): Promise<TikTokCreatorInfo> {
+  const res = await fetchJson<
+    TikTokEnvelope<{
+      creator_nickname?: string;
+      creator_username?: string;
+      creator_avatar_url?: string;
+      privacy_level_options?: string[];
+      comment_disabled?: boolean;
+      duet_disabled?: boolean;
+      stitch_disabled?: boolean;
+      max_video_post_duration_sec?: number;
+    }>
+  >(`${TIKTOK_API_BASE}/post/publish/creator_info/query/`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    context: 'tiktok creator_info',
+    platform: Platform.TIKTOK,
+  });
+  assertOk(res, 'tiktok creator_info');
+  const d = res.data;
+  const privacyLevelOptions = d.privacy_level_options ?? [];
+  return {
+    creatorNickname: d.creator_nickname ?? null,
+    creatorUsername: d.creator_username ?? null,
+    creatorAvatarUrl: d.creator_avatar_url ?? null,
+    privacyLevelOptions,
+    commentDisabled: d.comment_disabled ?? false,
+    duetDisabled: d.duet_disabled ?? false,
+    stitchDisabled: d.stitch_disabled ?? false,
+    maxVideoPostDurationSec: d.max_video_post_duration_sec ?? null,
+    canPost: privacyLevelOptions.length > 0,
+  };
+}
+
 export const tiktokPublishAdapter: PublishAdapter = {
   platform: Platform.TIKTOK,
 
   async publish(input: PublishInput) {
-    // 1. Query creator info for the allowed privacy levels.
-    const creator = await fetchJson<TikTokEnvelope<{ privacy_level_options?: string[] }>>(
-      `${TIKTOK_API_BASE}/post/publish/creator_info/query/`,
-      {
-        method: 'POST',
-        headers: authHeaders(input.accessToken),
-        context: 'tiktok creator_info',
-        platform: Platform.TIKTOK,
-      },
-    );
-    assertOk(creator, 'tiktok creator_info');
-    const privacy = pickPrivacy(creator.data.privacy_level_options);
+    // 1. Query the latest creator info for the allowed privacy levels +
+    //    interaction settings (the creator may have changed these in-app).
+    const creator = await fetchTikTokCreatorInfo(input.accessToken);
+    const opts = input.tiktok;
+
+    // Honor the creator's chosen privacy if it's still an allowed option;
+    // otherwise fall back to the safest configured default.
+    const chosen = opts?.privacy;
+    const privacy =
+      chosen && creator.privacyLevelOptions.includes(chosen)
+        ? (chosen as TikTokPrivacy)
+        : pickPrivacy(creator.privacyLevelOptions);
+
+    // Interactions default OFF; only enable when the user opted in AND TikTok
+    // hasn't disabled that interaction for this creator.
+    const disableComment = !(opts?.allowComment && !creator.commentDisabled);
+    const disableDuet = !(opts?.allowDuet && !creator.duetDisabled);
+    const disableStitch = !(opts?.allowStitch && !creator.stitchDisabled);
+
+    // Commercial content disclosure → TikTok's brand toggles.
+    const commercial = opts?.commercialDisclosure ?? false;
+    const brandOrganicToggle = commercial && (opts?.brandOrganic ?? false);
+    const brandedContentToggle = commercial && (opts?.brandedContent ?? false);
 
     // 2. Initialize the direct post, pulling the file from our CDN URL.
     const init = await fetchJson<TikTokEnvelope<{ publish_id?: string }>>(
@@ -80,9 +144,11 @@ export const tiktokPublishAdapter: PublishAdapter = {
           post_info: {
             title: captionWithHashtags(input.caption || input.title, input.hashtags).slice(0, 2200),
             privacy_level: privacy,
-            disable_comment: false,
-            disable_duet: false,
-            disable_stitch: false,
+            disable_comment: disableComment,
+            disable_duet: disableDuet,
+            disable_stitch: disableStitch,
+            brand_organic_toggle: brandOrganicToggle,
+            brand_content_toggle: brandedContentToggle,
           },
           source_info: { source: 'PULL_FROM_URL', video_url: input.videoUrl },
         }),

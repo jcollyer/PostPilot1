@@ -16,6 +16,7 @@
     "@postpilot/connectors": "*",
     "@postpilot/db": "*",
     "@postpilot/notifications": "*",
+    "@postpilot/publishing": "*",
     "@postpilot/queue": "*",
     "@postpilot/storage": "*",
     "@postpilot/types": "*",
