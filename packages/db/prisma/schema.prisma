@@ -340,6 +340,12 @@ model Video {
   caption  String? @db.Text
   hashtags String[]
 
+  // Which platforms this video should be published to when queued. Empty means
+  // "all connected platforms" (the default), so a fresh upload cross-posts
+  // everywhere without the user having to opt in. The scheduler intersects this
+  // with each schedule's own platform scope when materializing PublishTasks.
+  targetPlatforms Platform[]
+
   // AI pipeline outputs.
   transcript     String?          @db.Text
   aiStatus       AiPipelineStatus @default(PENDING)

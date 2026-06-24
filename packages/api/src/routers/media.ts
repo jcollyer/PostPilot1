@@ -15,6 +15,8 @@ import {
   selectThumbnailSchema,
   setCategoryManySchema,
   setPlatformMetaSchema,
+  setTargetPlatformsManySchema,
+  setTargetPlatformsSchema,
   setTiktokMetaSchema,
   type TikTokPostOptions,
   type TikTokPrivacyLevel,
@@ -38,8 +40,23 @@ import {
   sourceKey,
   videoPrefix,
 } from '@postpilot/storage';
+import { ensureQueue, recomputeSchedule } from '@postpilot/queue';
 
 import { protectedProcedure, router } from '../trpc';
+
+/**
+ * Re-materialize the caller's queue plan after a change that can affect which
+ * platforms a queued video publishes to. Best-effort: a recompute failure must
+ * not fail the underlying metadata write.
+ */
+async function recomputeUserQueue(prisma: PrismaClient, userId: string) {
+  try {
+    const queue = await ensureQueue(prisma, userId);
+    await recomputeSchedule(prisma, queue.id);
+  } catch {
+    // Swallow — the cron reschedule will reconcile on its next run.
+  }
+}
 
 /** Guard storage-backed procedures with a clear error when R2 isn't set up. */
 function assertStorageConfigured() {
@@ -122,6 +139,8 @@ function toVideoDto(v: VideoRecord, tiktokConnected = false) {
     title: v.title,
     caption: v.caption,
     hashtags: v.hashtags,
+    // Platforms this video posts to. Empty = all connected (the default).
+    targetPlatforms: v.targetPlatforms,
     categoryId: v.categoryId,
     category: v.category
       ? { id: v.category.id, name: v.category.name, color: v.category.color }
@@ -583,6 +602,38 @@ export const mediaRouter = router({
         update: data,
       });
       return { success: true as const };
+    }),
+
+  /**
+   * Set which platforms this video publishes to. An empty array restores the
+   * default ("all connected platforms"). Deduplicated server-side. Does not
+   * re-materialize the schedule here — the queue recomputes when the item is
+   * added/moved; videos already queued pick up the change on the next recompute.
+   */
+  setTargetPlatforms: protectedProcedure
+    .input(setTargetPlatformsSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
+      const platforms = [...new Set(input.platforms)];
+      await ctx.prisma.video.update({
+        where: { id: input.videoId },
+        data: { targetPlatforms: platforms },
+      });
+      await recomputeUserQueue(ctx.prisma, ctx.userId);
+      return { success: true as const, targetPlatforms: platforms };
+    }),
+
+  /** Bulk version of setTargetPlatforms for the multi-select toolbar. */
+  setTargetPlatformsMany: protectedProcedure
+    .input(setTargetPlatformsManySchema)
+    .mutation(async ({ ctx, input }) => {
+      const platforms = [...new Set(input.platforms)];
+      const { count } = await ctx.prisma.video.updateMany({
+        where: { id: { in: input.videoIds }, userId: ctx.userId },
+        data: { targetPlatforms: platforms },
+      });
+      await recomputeUserQueue(ctx.prisma, ctx.userId);
+      return { updated: count };
     }),
 
   /**

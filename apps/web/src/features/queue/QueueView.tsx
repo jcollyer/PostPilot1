@@ -316,9 +316,11 @@ function SortableRow({
         </div>
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
           <span>{item.scheduledAt ? formatSlot(item.scheduledAt) : 'Awaiting a slot'}</span>
-          {item.tasks.map((t) => (
-            <TaskChip key={t.id} task={t} onRetry={() => onRetry(t.id)} />
-          ))}
+          {item.tasks.length > 0 ? (
+            item.tasks.map((t) => <TaskChip key={t.id} task={t} onRetry={() => onRetry(t.id)} />)
+          ) : (
+            <Destinations platforms={item.postsTo} />
+          )}
         </div>
       </div>
 
@@ -343,6 +345,31 @@ function SortableRow({
         </button>
       </div>
     </li>
+  );
+}
+
+/**
+ * Where this item will post, shown before publish tasks are materialized (i.e.
+ * while it's still awaiting a slot). Once scheduled, the per-platform TaskChips
+ * convey the same destinations with live status, so this is only the fallback.
+ */
+function Destinations({ platforms }: { platforms: Platform[] }) {
+  if (platforms.length === 0) {
+    return <span className="text-muted-foreground">No connected platforms</span>;
+  }
+  return (
+    <span className="flex items-center gap-1">
+      <span className="text-muted-foreground/70">Posts to</span>
+      {platforms.map((p) => (
+        <span
+          key={p}
+          className="inline-flex items-center rounded bg-slate-100 px-1 text-slate-600"
+          title={PLATFORM_LABELS[p]}
+        >
+          {PLATFORM_SHORT[p]}
+        </span>
+      ))}
+    </span>
   );
 }
 

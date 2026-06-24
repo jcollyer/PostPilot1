@@ -144,6 +144,23 @@ export const selectThumbnailSchema = z.object({
 });
 export type SelectThumbnailInput = z.infer<typeof selectThumbnailSchema>;
 
+/**
+ * Set which platforms a video should be published to. An empty array means
+ * "all connected platforms" (the default cross-post behavior).
+ */
+export const setTargetPlatformsSchema = z.object({
+  videoId: z.string().min(1),
+  platforms: z.array(platformSchema).max(3),
+});
+export type SetTargetPlatformsInput = z.infer<typeof setTargetPlatformsSchema>;
+
+/** Set target platforms for many videos at once (bulk action on /media). */
+export const setTargetPlatformsManySchema = z.object({
+  videoIds: z.array(z.string().min(1)).min(1).max(1000),
+  platforms: z.array(platformSchema).max(3),
+});
+export type SetTargetPlatformsManyInput = z.infer<typeof setTargetPlatformsManySchema>;
+
 /** Edit a per-platform caption variant (marks it user-edited so AI won't clobber it). */
 export const setPlatformMetaSchema = z.object({
   videoId: z.string().min(1),

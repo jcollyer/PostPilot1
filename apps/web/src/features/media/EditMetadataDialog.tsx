@@ -38,6 +38,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc/client';
+import {
+  PlatformChips,
+  selectedFromTargets,
+  targetsFromSelected,
+  useConnectedPlatforms,
+} from './PlatformTargets';
 import type { VideoDto } from './types';
 import { putObject } from './upload';
 
@@ -61,6 +67,14 @@ export function EditMetadataDialog({
   const [coverUrl, setCoverUrl] = useState(video.coverImageUrl ?? null);
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
+
+  const { connected } = useConnectedPlatforms();
+  const [targetSel, setTargetSel] = useState(() => selectedFromTargets(video.targetPlatforms));
+  const setTargetPlatforms = trpc.media.setTargetPlatforms.useMutation({ onSuccess: onSaved });
+  const onToggleTargets = (next: Set<Platform>) => {
+    setTargetSel(next);
+    setTargetPlatforms.mutate({ videoId: video.id, platforms: targetsFromSelected(next) });
+  };
 
   const categories = trpc.media.listCategories.useQuery();
   const detail = trpc.media.get.useQuery({ videoId: video.id }, { enabled: open });
@@ -187,6 +201,15 @@ export function EditMetadataDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Post to</Label>
+            <PlatformChips selected={targetSel} connected={connected} onChange={onToggleTargets} />
+            <p className="text-muted-foreground text-xs">
+              Choose which platforms this video publishes to. Unconnected platforms are marked —
+              they’ll post once connected.
+            </p>
           </div>
 
           <div className="space-y-1.5">

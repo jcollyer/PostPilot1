@@ -31,6 +31,35 @@ function resolvePlatforms(slot: Slot, connected: Platform[]): Platform[] {
 }
 
 /**
+ * The platforms a queue item should actually publish to in a given slot.
+ *
+ * Combines two scopes:
+ *   - the slot's scope (its schedule's `platforms`, or all connected when empty)
+ *   - the video's own `targetPlatforms` (empty = "all connected", the default)
+ *
+ * When the video names explicit targets we honor exactly those (intersected
+ * with the slot's scope if the slot is platform-specific), so a platform the
+ * user picked but hasn't connected still yields a HELD task and stays visible
+ * rather than being silently dropped. When the video leaves it default, we fall
+ * back to the slot's resolved scope — i.e. the previous cross-post behavior.
+ */
+function platformsForItem(
+  slot: Slot,
+  connectedPlatforms: Platform[],
+  videoTargets: Platform[],
+): Platform[] {
+  if (videoTargets.length === 0) {
+    return resolvePlatforms(slot, connectedPlatforms);
+  }
+  // Slot scoped to specific platforms: keep only targets the slot allows.
+  if (slot.platforms.length > 0) {
+    return videoTargets.filter((p) => slot.platforms.includes(p));
+  }
+  // Slot covers "all": the video's explicit choice wins outright.
+  return videoTargets;
+}
+
+/**
  * Recompute the schedule for a queue. Idempotent: clears future SCHEDULED tasks
  * (leaving in-flight/published/held-by-publishing ones alone), then walks the
  * queue in position order, assigning each PENDING item to the next usable slot
@@ -76,29 +105,43 @@ export async function recomputeSchedule(
   const items = await prisma.queueItem.findMany({
     where: { queueId, status: 'PENDING' },
     orderBy: { position: 'asc' },
-    select: { id: true },
+    select: { id: true, video: { select: { targetPlatforms: true } } },
   });
 
   let scheduledItems = 0;
   let tasks = 0;
-  const count = Math.min(items.length, slots.length);
 
-  for (let i = 0; i < count; i++) {
-    const item = items[i]!;
-    const slot = slots[i]!;
-    const platforms = resolvePlatforms(slot, connectedPlatforms);
+  // Greedy assignment: walk slots in time order and give each to the
+  // earliest-positioned not-yet-scheduled item that can publish to ≥1 platform
+  // in that slot. This keeps queue order in the common case (one all-platforms
+  // schedule -> every item is compatible, so it degrades to 1:1 by index) while
+  // letting a platform-scoped item skip a slot it can't use rather than burning
+  // it on a no-op.
+  const used = new Set<string>();
 
+  for (const slot of slots) {
+    let chosen: { id: string; platforms: Platform[] } | null = null;
+    for (const item of items) {
+      if (used.has(item.id)) continue;
+      const platforms = platformsForItem(slot, connectedPlatforms, item.video.targetPlatforms);
+      if (platforms.length === 0) continue;
+      chosen = { id: item.id, platforms };
+      break;
+    }
+    if (!chosen) continue;
+
+    used.add(chosen.id);
     await prisma.queueItem.update({
-      where: { id: item.id },
+      where: { id: chosen.id },
       data: { status: 'SCHEDULED', scheduledAt: slot.at },
     });
     scheduledItems++;
 
-    for (const platform of platforms) {
+    for (const platform of chosen.platforms) {
       const connectionId = connected.get(platform) ?? null;
       await prisma.publishTask.create({
         data: {
-          queueItemId: item.id,
+          queueItemId: chosen.id,
           platform,
           connectionId,
           status: connectionId ? 'SCHEDULED' : 'HELD',
@@ -107,6 +150,8 @@ export async function recomputeSchedule(
       });
       tasks++;
     }
+
+    if (used.size >= items.length) break;
   }
 
   return { scheduledItems, tasks };

@@ -39,6 +39,16 @@ export const queueRouter = router({
   /** The queue: status + ordered items with their per-platform publish tasks. */
   get: protectedProcedure.query(async ({ ctx }) => {
     const queue = await userQueue(ctx.prisma, ctx.userId);
+
+    // Which platforms are connected right now — used to resolve a video's
+    // "all connected" default (empty targetPlatforms) into a concrete list for
+    // the "posting to" indicator on each row.
+    const activeConns = await ctx.prisma.platformConnection.findMany({
+      where: { userId: ctx.userId, status: 'ACTIVE' },
+      select: { platform: true },
+    });
+    const connectedPlatforms = [...new Set(activeConns.map((c) => c.platform))];
+
     const items = await ctx.prisma.queueItem.findMany({
       where: { queueId: queue.id },
       orderBy: { position: 'asc' },
@@ -53,6 +63,7 @@ export const queueRouter = router({
             selectedThumbnail: { select: { url: true } },
             category: { select: { name: true, color: true } },
             isDuplicate: true,
+            targetPlatforms: true,
           },
         },
         publishTasks: {
@@ -78,6 +89,11 @@ export const queueRouter = router({
         position: it.position,
         status: it.status,
         scheduledAt: it.scheduledAt,
+        // Where this item is intended to post: the video's explicit choice, or
+        // all currently-connected platforms when left on the default. Shown on
+        // the row even before publish tasks are materialized.
+        postsTo:
+          it.video.targetPlatforms.length > 0 ? it.video.targetPlatforms : connectedPlatforms,
         video: {
           id: it.video.id,
           title: it.video.title,
@@ -86,6 +102,7 @@ export const queueRouter = router({
           thumbnailUrl: it.video.coverImageUrl ?? it.video.selectedThumbnail?.url ?? null,
           category: it.video.category,
           isDuplicate: it.video.isDuplicate,
+          targetPlatforms: it.video.targetPlatforms,
         },
         tasks: it.publishTasks.map((t) => ({
           id: t.id,

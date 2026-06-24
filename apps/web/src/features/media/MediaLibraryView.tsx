@@ -12,6 +12,7 @@ import {
   Pencil,
   Play,
   Search,
+  Share2,
   Sparkles,
   Tag,
   Trash2,
@@ -19,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { mediaStatusSchema, type MediaStatus } from '@postpilot/types';
+import { mediaStatusSchema, type MediaStatus, type Platform } from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,6 +40,12 @@ import {
 } from '@/components/ui/select';
 import { trpc } from '@/lib/trpc/client';
 import { EditMetadataDialog } from './EditMetadataDialog';
+import {
+  PlatformChips,
+  selectedFromTargets,
+  targetsFromSelected,
+  useConnectedPlatforms,
+} from './PlatformTargets';
 import { UploadDialog } from './UploadDialog';
 import type { VideoDto } from './types';
 import { formatBytes, formatDuration } from './upload';
@@ -60,6 +67,19 @@ export function MediaLibraryView() {
   }, [searchInput]);
 
   const categories = trpc.media.listCategories.useQuery();
+  const { connected } = useConnectedPlatforms();
+
+  // Per-video platform targeting. The card keeps optimistic local state, so we
+  // only refresh the queue (whose plan can change) — not the media list.
+  const setTargets = trpc.media.setTargetPlatforms.useMutation({
+    onSuccess: () => utils.queue.invalidate(),
+  });
+  const setTargetsMany = trpc.media.setTargetPlatformsMany.useMutation({
+    onSuccess: () => {
+      utils.media.list.invalidate();
+      utils.queue.invalidate();
+    },
+  });
 
   // Poll the AI-status summary while anything is still pending/running so the
   // counts (and the cards) reflect the worker's progress.
@@ -121,6 +141,9 @@ export function MediaLibraryView() {
   // ---- Multi-select ----
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Bulk "Set platforms" dialog: open flag + the working selection.
+  const [platformsDialog, setPlatformsDialog] = useState(false);
+  const [bulkPlatforms, setBulkPlatforms] = useState<Set<Platform>>(() => selectedFromTargets([]));
 
   const clearSelection = () => setSelectedIds(new Set());
   const toggleSelect = (id: string) =>
@@ -189,8 +212,25 @@ export function MediaLibraryView() {
   const bulkBusy =
     removeMany.isPending ||
     setCategoryMany.isPending ||
+    setTargetsMany.isPending ||
     addToQueue.isPending ||
     regenerate.isPending;
+
+  const openPlatformsDialog = () => {
+    setBulkPlatforms(selectedFromTargets([]));
+    setPlatformsDialog(true);
+  };
+  const applyBulkPlatforms = () => {
+    setTargetsMany.mutate(
+      { videoIds: [...selectedIds], platforms: targetsFromSelected(bulkPlatforms) },
+      {
+        onSuccess: () => {
+          setPlatformsDialog(false);
+          clearSelection();
+        },
+      },
+    );
+  };
 
   const hasFilters = Boolean(search || status || categoryId);
 
@@ -393,6 +433,10 @@ export function MediaLibraryView() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button size="sm" variant="outline" onClick={openPlatformsDialog} disabled={bulkBusy}>
+              <Share2 className="mr-2 h-4 w-4" />
+              Set platforms
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -432,6 +476,8 @@ export function MediaLibraryView() {
                   setQueuedIds((prev) => new Set(prev).add(video.id));
                 }}
                 queued={queuedIds.has(video.id)}
+                connected={connected}
+                onSetTargets={(platforms) => setTargets.mutate({ videoId: video.id, platforms })}
               />
             ))}
           </div>
@@ -490,6 +536,36 @@ export function MediaLibraryView() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={platformsDialog} onOpenChange={(o) => !o && setPlatformsDialog(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              Post {selectedCount} video{selectedCount === 1 ? '' : 's'} to…
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground text-sm">
+            Choose which platforms these videos publish to. Platforms you haven’t connected yet are
+            marked — they’ll publish once connected.
+          </p>
+          <div className="py-1">
+            <PlatformChips
+              selected={bulkPlatforms}
+              connected={connected}
+              onChange={setBulkPlatforms}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setPlatformsDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={applyBulkPlatforms} disabled={setTargetsMany.isPending}>
+              {setTargetsMany.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Apply
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -528,6 +604,8 @@ function VideoCard({
   deleting,
   onAddToQueue,
   queued,
+  connected,
+  onSetTargets,
 }: {
   video: VideoDto;
   selected: boolean;
@@ -539,12 +617,28 @@ function VideoCard({
   deleting: boolean;
   onAddToQueue: () => void;
   queued: boolean;
+  connected: Set<Platform>;
+  onSetTargets: (platforms: Platform[]) => void;
 }) {
   const badge = STATUS_BADGE[video.status];
   const duration = formatDuration(video.durationSec);
   const canPreview = Boolean(video.cdnUrl) && video.status === 'READY';
   const aiBusy = video.aiStatus === 'PENDING' || video.aiStatus === 'RUNNING';
   const isQueued = video.inQueue || queued;
+
+  // Optimistic local mirror of the video's platform targets so toggling a chip
+  // feels instant; the mutation persists in the background.
+  const [targetSel, setTargetSel] = useState<Set<Platform>>(() =>
+    selectedFromTargets(video.targetPlatforms),
+  );
+  useEffect(() => {
+    setTargetSel(selectedFromTargets(video.targetPlatforms));
+  }, [video.targetPlatforms]);
+
+  const onToggleTarget = (next: Set<Platform>) => {
+    setTargetSel(next);
+    onSetTargets(targetsFromSelected(next));
+  };
 
   return (
     <div
@@ -750,6 +844,18 @@ function VideoCard({
             {video.category.name}
           </span>
         ) : null}
+
+        <div className="space-y-1 border-t pt-2">
+          <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-wide">
+            Post to
+          </p>
+          <PlatformChips
+            selected={targetSel}
+            connected={connected}
+            onChange={onToggleTarget}
+            size="xs"
+          />
+        </div>
       </div>
     </div>
   );
