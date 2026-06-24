@@ -114,10 +114,12 @@ export const queueRouter = router({
     const toAdd = videos.filter((v) => !already.has(v.id));
 
     let maxPos =
-      (await ctx.prisma.queueItem.aggregate({
-        where: { queueId: queue.id },
-        _max: { position: true },
-      }))._max.position ?? 0;
+      (
+        await ctx.prisma.queueItem.aggregate({
+          where: { queueId: queue.id },
+          _max: { position: true },
+        })
+      )._max.position ?? 0;
 
     for (const v of toAdd) {
       maxPos = appendPosition(maxPos);
@@ -309,17 +311,15 @@ export const queueRouter = router({
       return { success: true as const };
     }),
 
-  deleteSchedule: protectedProcedure
-    .input(scheduleIdSchema)
-    .mutation(async ({ ctx, input }) => {
-      const queue = await userQueue(ctx.prisma, ctx.userId);
-      const existing = await ctx.prisma.schedule.findFirst({
-        where: { id: input.scheduleId, queueId: queue.id },
-        select: { id: true },
-      });
-      if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Schedule not found.' });
-      await ctx.prisma.schedule.delete({ where: { id: input.scheduleId } });
-      await recomputeSchedule(ctx.prisma, queue.id);
-      return { success: true as const };
-    }),
+  deleteSchedule: protectedProcedure.input(scheduleIdSchema).mutation(async ({ ctx, input }) => {
+    const queue = await userQueue(ctx.prisma, ctx.userId);
+    const existing = await ctx.prisma.schedule.findFirst({
+      where: { id: input.scheduleId, queueId: queue.id },
+      select: { id: true },
+    });
+    if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Schedule not found.' });
+    await ctx.prisma.schedule.delete({ where: { id: input.scheduleId } });
+    await recomputeSchedule(ctx.prisma, queue.id);
+    return { success: true as const };
+  }),
 });

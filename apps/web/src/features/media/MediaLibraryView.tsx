@@ -19,12 +19,7 @@ import {
 import { mediaStatusSchema, type MediaStatus } from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,10 +53,13 @@ export function MediaLibraryView() {
 
   // Poll the AI-status summary while anything is still pending/running so the
   // counts (and the cards) reflect the worker's progress.
-  const aiSummary = trpc.media.aiSummary.useQuery({}, {
-    refetchInterval: (q) =>
-      q.state.data && (q.state.data.PENDING > 0 || q.state.data.RUNNING > 0) ? 4000 : false,
-  });
+  const aiSummary = trpc.media.aiSummary.useQuery(
+    {},
+    {
+      refetchInterval: (q) =>
+        q.state.data && (q.state.data.PENDING > 0 || q.state.data.RUNNING > 0) ? 4000 : false,
+    },
+  );
   const busy = (aiSummary.data?.PENDING ?? 0) + (aiSummary.data?.RUNNING ?? 0) > 0;
 
   // Keep the grid fresh while the worker is processing.
@@ -88,10 +86,7 @@ export function MediaLibraryView() {
     { getNextPageParam: (last) => last.nextCursor },
   );
 
-  const videos = useMemo(
-    () => query.data?.pages.flatMap((p) => p.items) ?? [],
-    [query.data],
-  );
+  const videos = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
 
   const refresh = () => utils.media.list.invalidate();
 
@@ -133,7 +128,7 @@ export function MediaLibraryView() {
       </div>
 
       {aiSummary.data && aiSummary.data.total > 0 ? (
-        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+        <div className="text-muted-foreground bg-muted/30 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-xs">
           <span className="text-foreground font-medium">AI metadata</span>
           {busy ? (
             <span className="flex items-center gap-1.5">
@@ -257,7 +252,9 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-center">
       <Film className="text-muted-foreground h-8 w-8" />
-      <p className="font-medium">{hasFilters ? 'No videos match those filters' : 'No videos yet'}</p>
+      <p className="font-medium">
+        {hasFilters ? 'No videos match those filters' : 'No videos yet'}
+      </p>
       <p className="text-muted-foreground max-w-sm text-sm">
         {hasFilters
           ? 'Try clearing the search or filters.'
@@ -297,7 +294,7 @@ function VideoCard({
   const aiBusy = video.aiStatus === 'PENDING' || video.aiStatus === 'RUNNING';
 
   return (
-    <div className="group bg-card overflow-hidden rounded-lg border">
+    <div className="bg-card group overflow-hidden rounded-lg border">
       <button
         type="button"
         onClick={canPreview ? onPreview : undefined}
@@ -360,7 +357,10 @@ function VideoCard({
 
       <div className="space-y-2 p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="min-w-0 flex-1 truncate text-sm font-medium" title={video.title ?? undefined}>
+          <p
+            className="min-w-0 flex-1 truncate text-sm font-medium"
+            title={video.title ?? undefined}
+          >
             {video.title ?? video.originalFilename ?? 'Untitled'}
           </p>
           <DropdownMenu>
@@ -375,7 +375,11 @@ function VideoCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {video.status === 'READY' ? (
-                <DropdownMenuItem onClick={onAddToQueue} disabled={queued} className="cursor-pointer">
+                <DropdownMenuItem
+                  onClick={onAddToQueue}
+                  disabled={queued}
+                  className="cursor-pointer"
+                >
                   {queued ? (
                     <Check className="mr-2 h-4 w-4 text-emerald-600" />
                   ) : (

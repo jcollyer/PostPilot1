@@ -161,7 +161,9 @@ export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
         >
           <Upload className="text-muted-foreground h-6 w-6" />
           <span className="font-medium">Drop videos or click to browse</span>
-          <span className="text-muted-foreground text-xs">MP4, MOV, or WebM · up to 10 GB each</span>
+          <span className="text-muted-foreground text-xs">
+            MP4, MOV, or WebM · up to 10 GB each
+          </span>
         </button>
         <input
           ref={inputRef}
@@ -177,14 +179,13 @@ export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
             {items.map((it) => (
               <li key={it.id} className="rounded-md border p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{it.file.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {it.file.name}
+                  </span>
                   <span className="text-muted-foreground shrink-0 text-xs">
                     {formatBytes(it.file.size)}
                   </span>
-                  <UploadStatusIcon
-                    item={it}
-                    onCancel={() => it.controller.abort()}
-                  />
+                  <UploadStatusIcon item={it} onCancel={() => it.controller.abort()} />
                 </div>
                 {it.status === 'uploading' ? (
                   <div className="bg-muted mt-2 h-1.5 w-full overflow-hidden rounded-full">
@@ -207,10 +208,8 @@ export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
 }
 
 function UploadStatusIcon({ item, onCancel }: { item: UploadItem; onCancel: () => void }) {
-  if (item.status === 'done')
-    return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
-  if (item.status === 'error')
-    return <AlertCircle className="text-destructive h-4 w-4 shrink-0" />;
+  if (item.status === 'done') return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />;
+  if (item.status === 'error') return <AlertCircle className="text-destructive h-4 w-4 shrink-0" />;
   if (item.status === 'canceled')
     return <span className="text-muted-foreground shrink-0 text-xs">Canceled</span>;
   return (

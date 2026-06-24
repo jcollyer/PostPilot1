@@ -81,7 +81,12 @@ export const tiktokAdapter: PlatformAdapter = {
     return Boolean(clientKey && clientSecret);
   },
 
-  getAuthorizationUrl({ redirectUri, state, codeVerifier, scopes }: AuthorizeOptions): AuthorizationRequest {
+  getAuthorizationUrl({
+    redirectUri,
+    state,
+    codeVerifier,
+    scopes,
+  }: AuthorizeOptions): AuthorizationRequest {
     const { clientKey } = credentials();
     if (!codeVerifier) {
       throw new OAuthError('TikTok requires PKCE (missing code verifier).', {

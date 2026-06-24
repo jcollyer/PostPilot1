@@ -90,7 +90,9 @@ export function NotificationsBell() {
               <Loader2 className="h-4 w-4 animate-spin" /> Loading…
             </div>
           ) : (list.data?.items.length ?? 0) === 0 ? (
-            <p className="text-muted-foreground p-6 text-center text-sm">You&apos;re all caught up.</p>
+            <p className="text-muted-foreground p-6 text-center text-sm">
+              You&apos;re all caught up.
+            </p>
           ) : (
             list.data!.items.map((n) => (
               <Link
@@ -114,12 +116,23 @@ export function NotificationsBell() {
                     {n.body ? (
                       <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{n.body}</p>
                     ) : null}
-                    <p className="text-muted-foreground mt-0.5 text-[11px]">{timeAgo(n.createdAt)}</p>
+                    <p className="text-muted-foreground mt-0.5 text-[11px]">
+                      {timeAgo(n.createdAt)}
+                    </p>
                   </div>
                 </div>
               </Link>
             ))
           )}
+        </div>
+
+        <div className="border-t">
+          <Link
+            href="/settings#notifications"
+            className="hover:bg-accent block px-3 py-2.5 text-center text-sm font-medium"
+          >
+            See all notifications
+          </Link>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

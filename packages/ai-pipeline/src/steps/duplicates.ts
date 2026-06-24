@@ -44,7 +44,12 @@ export async function detectDuplicates(
   // Idempotent re-runs: clear this video's previous matches.
   await prisma.duplicateMatch.deleteMany({ where: { videoId } });
 
-  type Candidate = { matchedVideoId: string; type: DuplicateType; method: DuplicateMethod; similarity: number };
+  type Candidate = {
+    matchedVideoId: string;
+    type: DuplicateType;
+    method: DuplicateMethod;
+    similarity: number;
+  };
   const matches: Candidate[] = [];
 
   // --- pHash pass ---------------------------------------------------------
@@ -97,20 +102,21 @@ export async function detectDuplicates(
           method: m.method,
         },
       },
-      create: { videoId, matchedVideoId: m.matchedVideoId, type: m.type, method: m.method, similarity: m.similarity },
+      create: {
+        videoId,
+        matchedVideoId: m.matchedVideoId,
+        type: m.type,
+        method: m.method,
+        similarity: m.similarity,
+      },
       update: { type: m.type, similarity: m.similarity },
     });
   }
 
   // Flag the video with its strongest match (exact pHash wins, else best score).
-  const best = matches
-    .slice()
-    .sort((a, b) => rank(b) - rank(a))[0];
+  const best = matches.slice().sort((a, b) => rank(b) - rank(a))[0];
   const flag =
-    best &&
-    (best.method === DuplicateMethod.PHASH || best.similarity >= EMBED_FLAG)
-      ? best
-      : null;
+    best && (best.method === DuplicateMethod.PHASH || best.similarity >= EMBED_FLAG) ? best : null;
 
   await prisma.video.update({
     where: { id: videoId },

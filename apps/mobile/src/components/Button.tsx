@@ -11,7 +11,8 @@ interface Props extends Omit<PressableProps, 'children' | 'className'> {
   children: React.ReactNode;
 }
 
-const base = 'flex-row items-center justify-center rounded-lg active:opacity-80 disabled:opacity-50';
+const base =
+  'flex-row items-center justify-center rounded-lg active:opacity-80 disabled:opacity-50';
 
 const variants: Record<Variant, { container: string; text: string; spinner: string }> = {
   primary: { container: 'bg-primary', text: 'text-white font-semibold', spinner: '#ffffff' },

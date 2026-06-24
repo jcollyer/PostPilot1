@@ -78,13 +78,19 @@ export function DashboardView({ greeting }: { greeting: string }) {
           </div>
           {health.postsPerDay <= 0 ? (
             <p className="text-muted-foreground mt-4 text-sm">
-              Add a <Link href="/queue" className="underline">posting schedule</Link> so PostPilot
-              can project how long your content lasts.
+              Add a{' '}
+              <Link href="/queue" className="underline">
+                posting schedule
+              </Link>{' '}
+              so PostPilot can project how long your content lasts.
             </p>
           ) : health.remaining === 0 ? (
             <p className="mt-4 text-sm text-amber-700">
               Your queue is empty.{' '}
-              <Link href="/media" className="underline">Upload more videos</Link> to keep posting.
+              <Link href="/media" className="underline">
+                Upload more videos
+              </Link>{' '}
+              to keep posting.
             </p>
           ) : null}
         </CardContent>
@@ -134,7 +140,10 @@ export function DashboardView({ greeting }: { greeting: string }) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-base">
             Connected accounts
-            <Link href="/settings/connections" className="text-muted-foreground text-sm font-normal underline">
+            <Link
+              href="/settings/connections"
+              className="text-muted-foreground text-sm font-normal underline"
+            >
               Manage
             </Link>
           </CardTitle>
@@ -231,7 +240,8 @@ function ConnHealth({ configured, status }: { configured: boolean; status: strin
   if (!configured) {
     return <Badge className="bg-slate-100 text-slate-500">Unavailable</Badge>;
   }
-  if (status === 'ACTIVE') return <Badge className="bg-emerald-100 text-emerald-800">Connected</Badge>;
+  if (status === 'ACTIVE')
+    return <Badge className="bg-emerald-100 text-emerald-800">Connected</Badge>;
   if (status === 'NEEDS_RECONNECT')
     return (
       <Link href="/settings/connections">
@@ -247,6 +257,8 @@ function ConnHealth({ configured, status }: { configured: boolean; status: strin
 
 function Badge({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${className ?? ''}`}>{children}</span>
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${className ?? ''}`}>
+      {children}
+    </span>
   );
 }

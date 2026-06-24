@@ -1,7 +1,7 @@
 import { NotificationChannel, prisma } from '@postpilot/db';
 
 import { sendEmail, sendPush, sendSms } from './channels';
-import { channelsFor, isEmailConfigured, isSmsConfigured, THROTTLE_WINDOW_MS } from './config';
+import { channelsForUser, isEmailConfigured, isSmsConfigured, THROTTLE_WINDOW_MS } from './config';
 
 export interface DispatchResult {
   processed: number;
@@ -52,7 +52,14 @@ export async function dispatchPending(opts?: { limit?: number }): Promise<Dispat
     orderBy: { createdAt: 'asc' },
     take: opts?.limit ?? 50,
     include: {
-      user: { select: { email: true, phoneNumber: true, devices: { select: { expoPushToken: true } } } },
+      user: {
+        select: {
+          email: true,
+          phoneNumber: true,
+          devices: { select: { expoPushToken: true } },
+          notificationPrefs: { select: { type: true, channel: true, enabled: true } },
+        },
+      },
     },
   });
 
@@ -86,7 +93,7 @@ export async function dispatchPending(opts?: { limit?: number }): Promise<Dispat
       }
     }
 
-    const channels = channelsFor(n.type);
+    const channels = channelsForUser(n.type, n.user.notificationPrefs);
     const text = n.body ?? n.title;
     let attempted = 0;
     let anyOk = false;

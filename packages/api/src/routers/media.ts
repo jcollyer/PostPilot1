@@ -251,7 +251,10 @@ export const mediaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const video = await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
       if (!video.coverImageKey) {
-        throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'No cover upload in progress.' });
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'No cover upload in progress.',
+        });
       }
       const updated = await ctx.prisma.video.update({
         where: { id: video.id },

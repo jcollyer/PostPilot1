@@ -23,10 +23,7 @@ interface OAuthStateCookie {
  * for tokens, persists the (encrypted) connection, and redirects back to the
  * connections settings page with a success/error flag.
  */
-export async function GET(
-  req: NextRequest,
-  ctx: { params: Promise<{ platform: string }> },
-) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ platform: string }> }) {
   const { platform: platformParam } = await ctx.params;
   const origin = resolveOrigin(req);
   const settingsUrl = new URL('/settings/connections', origin);

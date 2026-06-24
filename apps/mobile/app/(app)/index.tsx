@@ -58,7 +58,9 @@ export default function HomeScreen() {
           <Stat label="Videos left" value={String(d?.health.remaining ?? 0)} />
           <Stat
             label="Days of content"
-            value={d?.health.daysRemaining != null ? `≈ ${Math.round(d.health.daysRemaining)}` : '—'}
+            value={
+              d?.health.daysRemaining != null ? `≈ ${Math.round(d.health.daysRemaining)}` : '—'
+            }
           />
           <Stat label="Empty ~" value={fmtDate(d?.health.estimatedEmptyDate)} />
           <Stat label="Upload by" value={fmtDate(d?.health.recommendedUploadBy)} />

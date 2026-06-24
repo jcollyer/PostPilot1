@@ -62,9 +62,7 @@ title; Instagram = aesthetic, mid-length. Respond with ONLY a JSON object of the
 function normalizeHashtags(tags: string[]): string[] {
   return Array.from(
     new Set(
-      tags
-        .map((t) => t.replace(/^#/, '').trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean),
+      tags.map((t) => t.replace(/^#/, '').trim().toLowerCase().replace(/\s+/g, '')).filter(Boolean),
     ),
   ).slice(0, 30);
 }
@@ -126,7 +124,11 @@ export async function generateMetadata(params: {
     category: parsed.category.trim(),
     bestFrameIndex: Math.min(Math.max(0, parsed.bestFrameIndex), Math.max(0, frames.length - 1)),
     // placeholder; filled below once `base` exists
-    platforms: { TIKTOK: { title: '', caption: '', hashtags: [] }, INSTAGRAM: { title: '', caption: '', hashtags: [] }, YOUTUBE: { title: '', caption: '', hashtags: [] } },
+    platforms: {
+      TIKTOK: { title: '', caption: '', hashtags: [] },
+      INSTAGRAM: { title: '', caption: '', hashtags: [] },
+      YOUTUBE: { title: '', caption: '', hashtags: [] },
+    },
   };
 
   base.platforms = {

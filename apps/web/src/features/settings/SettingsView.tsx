@@ -13,6 +13,7 @@ import { getInitials } from '@/lib/utils';
 import { trpc } from '@/lib/trpc/client';
 
 import { DeleteAccountDialog } from './DeleteAccountDialog';
+import { NotificationsSettings } from './NotificationsSettings';
 import { signOutAfterAccountDelete } from './actions';
 
 /**
@@ -180,6 +181,18 @@ export function SettingsView() {
           <Button variant="outline" asChild>
             <Link href="/settings/connections">Manage platform connections</Link>
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card id="notifications" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>
+            Choose how each alert reaches you, and review your notification history.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <NotificationsSettings />
         </CardContent>
       </Card>
 

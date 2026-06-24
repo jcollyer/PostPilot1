@@ -8,6 +8,10 @@ export { computeQueueHealth, runQueueHealthChecks, type QueueHealth } from './qu
 // Config / routing
 export {
   channelsFor,
+  channelsForUser,
+  NOTIFICATION_TYPE_META,
+  type NotificationTypeMeta,
+  type ChannelPreference,
   isEmailConfigured,
   isSmsConfigured,
   THROTTLE_WINDOW_MS,

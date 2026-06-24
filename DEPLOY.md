@@ -51,14 +51,14 @@ ffmpeg is included in the image anyway in case you later co-locate a worker.
 The jobs live in `packages/jobs` (`trigger.config.ts` + `src/trigger/*`). They're
 scheduled crons:
 
-| Task | Cron | Wraps |
-| --- | --- | --- |
-| `refresh-connections` | hourly | `refreshDueConnections()` |
-| `ai-process` | every 5 min | `processPending()` |
-| `queue-reschedule` | hourly | `rescheduleAllActiveQueues()` |
-| `publish-due` | every minute | `publishDueTasks()` |
-| `notify-dispatch` | every 2 min | `dispatchPending()` |
-| `queue-health` | daily | `runQueueHealthChecks()` |
+| Task                  | Cron         | Wraps                         |
+| --------------------- | ------------ | ----------------------------- |
+| `refresh-connections` | hourly       | `refreshDueConnections()`     |
+| `ai-process`          | every 5 min  | `processPending()`            |
+| `queue-reschedule`    | hourly       | `rescheduleAllActiveQueues()` |
+| `publish-due`         | every minute | `publishDueTasks()`           |
+| `notify-dispatch`     | every 2 min  | `dispatchPending()`           |
+| `queue-health`        | daily        | `runQueueHealthChecks()`      |
 
 Set up:
 

@@ -54,13 +54,13 @@ Heavy work never runs in request handlers. During development, run the worker
 loops (each is a framework-agnostic entrypoint that Trigger.dev wraps in
 production — see `DEPLOY.md`):
 
-| Command | What it does |
-| --- | --- |
-| `npm run ai:watch` | Drains PENDING videos through the AI pipeline |
-| `npm run publish:watch` | Publishes due posts + polls in-flight ones |
-| `npm run notify:watch` | Queue-health checks + delivers notifications |
-| `npm run refresh:connections` | Proactive OAuth token refresh |
-| `npm run queue:reschedule` | Recomputes the publish plan |
+| Command                       | What it does                                  |
+| ----------------------------- | --------------------------------------------- |
+| `npm run ai:watch`            | Drains PENDING videos through the AI pipeline |
+| `npm run publish:watch`       | Publishes due posts + polls in-flight ones    |
+| `npm run notify:watch`        | Queue-health checks + delivers notifications  |
+| `npm run refresh:connections` | Proactive OAuth token refresh                 |
+| `npm run queue:reschedule`    | Recomputes the publish plan                   |
 
 ffmpeg must be installed locally (`brew install ffmpeg`) and on the worker host.
 

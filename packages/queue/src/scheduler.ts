@@ -167,7 +167,11 @@ export async function getUpcoming(
         select: {
           videoId: true,
           video: {
-            select: { title: true, coverImageUrl: true, selectedThumbnail: { select: { url: true } } },
+            select: {
+              title: true,
+              coverImageUrl: true,
+              selectedThumbnail: { select: { url: true } },
+            },
           },
         },
       },
@@ -179,7 +183,8 @@ export async function getUpcoming(
     queueItemId: t.queueItemId,
     videoId: t.queueItem.videoId,
     title: t.queueItem.video.title,
-    thumbnailUrl: t.queueItem.video.coverImageUrl ?? t.queueItem.video.selectedThumbnail?.url ?? null,
+    thumbnailUrl:
+      t.queueItem.video.coverImageUrl ?? t.queueItem.video.selectedThumbnail?.url ?? null,
     platform: t.platform,
     scheduledAt: t.scheduledAt,
     status: t.status,

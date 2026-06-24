@@ -47,9 +47,17 @@ export function getOpenAI(): OpenAI {
 /** Compact, log-friendly description of an OpenAI/SDK error. */
 export function describeOpenAIError(err: unknown): string {
   if (err && typeof err === 'object') {
-    const e = err as { name?: string; status?: number; code?: string; message?: string; cause?: unknown };
+    const e = err as {
+      name?: string;
+      status?: number;
+      code?: string;
+      message?: string;
+      cause?: unknown;
+    };
     const parts = [e.name, e.status ? `HTTP ${e.status}` : '', e.code, e.message].filter(Boolean);
-    const cause = e.cause ? ` (cause: ${String((e.cause as { message?: string })?.message ?? e.cause)})` : '';
+    const cause = e.cause
+      ? ` (cause: ${String((e.cause as { message?: string })?.message ?? e.cause)})`
+      : '';
     return parts.join(' ') + cause;
   }
   return String(err);

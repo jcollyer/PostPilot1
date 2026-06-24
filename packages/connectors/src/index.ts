@@ -45,8 +45,4 @@ export {
 } from './connection-service';
 
 // Token refresh
-export {
-  refreshConnection,
-  refreshDueConnections,
-  markNeedsReconnect,
-} from './refresh-service';
+export { refreshConnection, refreshDueConnections, markNeedsReconnect } from './refresh-service';

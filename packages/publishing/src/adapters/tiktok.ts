@@ -2,7 +2,12 @@ import { Platform } from '@postpilot/db';
 
 import { TIKTOK_API_BASE, TIKTOK_DEFAULT_PRIVACY, type TikTokPrivacy } from '../config';
 import { fetchJson, PublishError } from '../http';
-import { captionWithHashtags, type PublishAdapter, type PollInput, type PublishInput } from '../types';
+import {
+  captionWithHashtags,
+  type PublishAdapter,
+  type PollInput,
+  type PublishInput,
+} from '../types';
 
 /**
  * TikTok Content Posting API — Direct Post via PULL_FROM_URL (TikTok fetches the
@@ -53,7 +58,12 @@ export const tiktokPublishAdapter: PublishAdapter = {
     // 1. Query creator info for the allowed privacy levels.
     const creator = await fetchJson<TikTokEnvelope<{ privacy_level_options?: string[] }>>(
       `${TIKTOK_API_BASE}/post/publish/creator_info/query/`,
-      { method: 'POST', headers: authHeaders(input.accessToken), context: 'tiktok creator_info', platform: Platform.TIKTOK },
+      {
+        method: 'POST',
+        headers: authHeaders(input.accessToken),
+        context: 'tiktok creator_info',
+        platform: Platform.TIKTOK,
+      },
     );
     assertOk(creator, 'tiktok creator_info');
     const privacy = pickPrivacy(creator.data.privacy_level_options);
@@ -91,7 +101,11 @@ export const tiktokPublishAdapter: PublishAdapter = {
 
   async poll({ accessToken, containerId }: PollInput) {
     const res = await fetchJson<
-      TikTokEnvelope<{ status?: string; fail_reason?: string; publicaly_available_post_id?: string[] }>
+      TikTokEnvelope<{
+        status?: string;
+        fail_reason?: string;
+        publicaly_available_post_id?: string[];
+      }>
     >(`${TIKTOK_API_BASE}/post/publish/status/fetch/`, {
       method: 'POST',
       headers: authHeaders(accessToken),

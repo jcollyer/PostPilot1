@@ -222,7 +222,11 @@ export function AuthForm({ hasGoogle }: AuthFormProps) {
             ) : mode === 'forgot' ? (
               <Mail className="h-4 w-4" />
             ) : null}
-            {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
+            {mode === 'signin'
+              ? 'Sign in'
+              : mode === 'signup'
+                ? 'Create account'
+                : 'Send reset link'}
           </Button>
         </form>
 

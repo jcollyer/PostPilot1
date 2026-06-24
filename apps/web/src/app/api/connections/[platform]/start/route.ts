@@ -13,10 +13,7 @@ const STATE_COOKIE = 'pp_oauth';
  * authorization screen and stashes the anti-CSRF `state` (and PKCE verifier) in
  * a short-lived, encrypted, httpOnly cookie verified on callback.
  */
-export async function GET(
-  req: NextRequest,
-  ctx: { params: Promise<{ platform: string }> },
-) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ platform: string }> }) {
   const { platform: platformParam } = await ctx.params;
   const origin = resolveOrigin(req);
   const settingsUrl = new URL('/settings/connections', origin);

@@ -11,7 +11,9 @@ import { publishDueTasks } from '../runner';
  */
 async function main() {
   const startedAt = Date.now();
-  const limit = process.env.PUBLISH_BATCH_LIMIT ? Number(process.env.PUBLISH_BATCH_LIMIT) : undefined;
+  const limit = process.env.PUBLISH_BATCH_LIMIT
+    ? Number(process.env.PUBLISH_BATCH_LIMIT)
+    : undefined;
   const results = await publishDueTasks({ limit });
 
   const by = (o: string) => results.filter((r) => r.outcome === o).length;

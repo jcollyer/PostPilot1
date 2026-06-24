@@ -36,9 +36,7 @@ const resend = process.env.AUTH_RESEND_KEY ? new Resend(process.env.AUTH_RESEND_
  */
 async function sendEmail(opts: { to: string; subject: string; html: string }): Promise<void> {
   if (!resend) {
-    console.warn(
-      `[auth] AUTH_RESEND_KEY not set — would send "${opts.subject}" to ${opts.to}`,
-    );
+    console.warn(`[auth] AUTH_RESEND_KEY not set — would send "${opts.subject}" to ${opts.to}`);
     return;
   }
   await resend.emails.send({
@@ -121,10 +119,7 @@ export const auth = betterAuth({
 
   // The web origin plus the mobile custom scheme so the Expo app's requests
   // are accepted.
-  trustedOrigins: [
-    process.env.AUTH_URL ?? 'http://localhost:3000',
-    `${APP_SCHEME}://`,
-  ],
+  trustedOrigins: [process.env.AUTH_URL ?? 'http://localhost:3000', `${APP_SCHEME}://`],
 
   // expo() enables the mobile flow; nextCookies() MUST stay last.
   plugins: [expo(), nextCookies()],

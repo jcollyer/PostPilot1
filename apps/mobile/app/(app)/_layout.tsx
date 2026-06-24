@@ -33,10 +33,7 @@ export default function AppLayout() {
         contentStyle: { backgroundColor: '#f8fafc' },
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{ title: 'Home', headerRight: () => <HeaderAvatar /> }}
-      />
+      <Stack.Screen name="index" options={{ title: 'Home', headerRight: () => <HeaderAvatar /> }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>
   );

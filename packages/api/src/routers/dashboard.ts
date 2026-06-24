@@ -13,7 +13,10 @@ const videoSelect = {
   selectedThumbnail: { select: { url: true } },
 } as const;
 
-function thumb(v: { coverImageUrl: string | null; selectedThumbnail: { url: string | null } | null }) {
+function thumb(v: {
+  coverImageUrl: string | null;
+  selectedThumbnail: { url: string | null } | null;
+}) {
   return v.coverImageUrl ?? v.selectedThumbnail?.url ?? null;
 }
 
@@ -34,9 +37,17 @@ export const dashboardRouter = router({
 
     const [nextTask, lastTask, readyVideos, connections] = await Promise.all([
       ctx.prisma.publishTask.findFirst({
-        where: { queueItem: { queueId: queue.id }, status: 'SCHEDULED', scheduledAt: { gte: new Date() } },
+        where: {
+          queueItem: { queueId: queue.id },
+          status: 'SCHEDULED',
+          scheduledAt: { gte: new Date() },
+        },
         orderBy: { scheduledAt: 'asc' },
-        select: { platform: true, scheduledAt: true, queueItem: { select: { video: { select: videoSelect } } } },
+        select: {
+          platform: true,
+          scheduledAt: true,
+          queueItem: { select: { video: { select: videoSelect } } },
+        },
       }),
       ctx.prisma.publishTask.findFirst({
         where: { queueItem: { queueId: queue.id }, status: 'PUBLISHED' },

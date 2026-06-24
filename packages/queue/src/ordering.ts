@@ -19,11 +19,7 @@ const LOOKBACK = RECENCY_WEIGHTS.length;
  * category match when an embedding is missing so un-analyzed videos still get
  * spaced sensibly.
  */
-function similarity(
-  a: OrderableItem,
-  b: OrderableItem,
-  emb: Map<string, number[]>,
-): number {
+function similarity(a: OrderableItem, b: OrderableItem, emb: Map<string, number[]>): number {
   const ea = emb.get(a.videoId);
   const eb = emb.get(b.videoId);
   if (ea && eb) return cosineSimilarity(ea, eb);
@@ -39,10 +35,7 @@ function similarity(
  *
  * Returns the reordered item ids.
  */
-export function orderBySpacing(
-  items: OrderableItem[],
-  emb: Map<string, number[]>,
-): string[] {
+export function orderBySpacing(items: OrderableItem[], emb: Map<string, number[]>): string[] {
   if (items.length <= 2) return items.map((i) => i.id);
 
   const remaining = items.slice();

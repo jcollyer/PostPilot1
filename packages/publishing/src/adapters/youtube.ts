@@ -13,12 +13,16 @@ import { type PublishAdapter, type PublishInput } from '../types';
 
 function classify(context: string, status: number, body: string): PublishError {
   const msg = `${context}: HTTP ${status} ${body.slice(0, 300)}`;
-  if (status === 401) return new PublishError(msg, { needsReconnect: true, status, platform: Platform.YOUTUBE });
+  if (status === 401)
+    return new PublishError(msg, { needsReconnect: true, status, platform: Platform.YOUTUBE });
   if (status === 403) {
     const quota = /quotaExceeded|rateLimitExceeded|userRateLimitExceeded/i.test(body);
-    return new PublishError(msg, quota
-      ? { recoverable: true, status, platform: Platform.YOUTUBE }
-      : { needsReconnect: true, status, platform: Platform.YOUTUBE });
+    return new PublishError(
+      msg,
+      quota
+        ? { recoverable: true, status, platform: Platform.YOUTUBE }
+        : { needsReconnect: true, status, platform: Platform.YOUTUBE },
+    );
   }
   if (status === 408 || status === 429 || status >= 500) {
     return new PublishError(msg, { recoverable: true, status, platform: Platform.YOUTUBE });
@@ -71,7 +75,10 @@ export const youtubePublishAdapter: PublishAdapter = {
       method: 'PUT',
       context: 'youtube upload',
       platform: Platform.YOUTUBE,
-      headers: { 'Content-Type': input.mimeType ?? 'video/mp4', 'Content-Length': String(bytes.length) },
+      headers: {
+        'Content-Type': input.mimeType ?? 'video/mp4',
+        'Content-Length': String(bytes.length),
+      },
       body: bytes,
     });
     const text = await uploadRes.text();

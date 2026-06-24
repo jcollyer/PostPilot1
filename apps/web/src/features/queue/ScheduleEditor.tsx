@@ -22,11 +22,7 @@ interface ScheduleDraft {
   isActive: boolean;
 }
 
-function summarize(s: {
-  daysOfWeek: number[];
-  times: string[];
-  platforms: Platform[];
-}): string {
+function summarize(s: { daysOfWeek: number[]; times: string[]; platforms: Platform[] }): string {
   const days =
     s.daysOfWeek.length === 7
       ? 'Every day'
@@ -182,7 +178,7 @@ function ScheduleForm({ onCancel, onSaved }: { onCancel: () => void; onSaved: ()
               className={`rounded-md px-2.5 py-1 text-xs font-medium ${
                 draft.daysOfWeek.includes(d)
                   ? 'bg-primary text-primary-foreground'
-                  : 'border hover:bg-accent'
+                  : 'hover:bg-accent border'
               }`}
             >
               {label}
@@ -233,7 +229,7 @@ function ScheduleForm({ onCancel, onSaved }: { onCancel: () => void; onSaved: ()
               className={`rounded-md px-2.5 py-1 text-xs font-medium ${
                 draft.platforms.includes(pl)
                   ? 'bg-primary text-primary-foreground'
-                  : 'border hover:bg-accent'
+                  : 'hover:bg-accent border'
               }`}
             >
               {PLATFORM_LABELS[pl]}

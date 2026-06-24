@@ -50,10 +50,7 @@ export async function refreshConnection(conn: PlatformConnection): Promise<Platf
  * publishing engine (which checks connection status); we never silently drop
  * anything here.
  */
-export async function markNeedsReconnect(
-  conn: PlatformConnection,
-  reason: string,
-): Promise<void> {
+export async function markNeedsReconnect(conn: PlatformConnection, reason: string): Promise<void> {
   const label = PLATFORM_LABELS[conn.platform as Platform];
   const dedupeKey = `reconnect:${conn.platform}:${conn.id}`;
 
@@ -97,9 +94,7 @@ export async function markNeedsReconnect(
 export async function refreshDueConnections(): Promise<
   Array<{ id: string; platform: Platform; ok: boolean; error?: string }>
 > {
-  const maxLeadMs = Math.max(
-    ...SUPPORTED_PLATFORMS.map((p) => getAdapter(p).refreshLeadMs),
-  );
+  const maxLeadMs = Math.max(...SUPPORTED_PLATFORMS.map((p) => getAdapter(p).refreshLeadMs));
   const candidates = await prisma.platformConnection.findMany({
     where: {
       status: 'ACTIVE',

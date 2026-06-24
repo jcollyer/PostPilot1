@@ -45,7 +45,10 @@ interface IgMeResponse {
   account_type?: string;
 }
 
-async function exchangeForLongLived(shortToken: string, clientSecret: string): Promise<LongTokenResponse> {
+async function exchangeForLongLived(
+  shortToken: string,
+  clientSecret: string,
+): Promise<LongTokenResponse> {
   return requestJson<LongTokenResponse>(
     buildUrl(`${GRAPH}/access_token`, {
       grant_type: 'ig_exchange_token',

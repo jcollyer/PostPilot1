@@ -5,7 +5,11 @@ import { getObjectBuffer } from '@postpilot/storage';
 import { getPublishAdapter } from './adapters';
 import { backoffMs, MAX_POLLS, MAX_PUBLISH_ATTEMPTS, POLL_INTERVAL_MS } from './config';
 import { PublishError } from './http';
-import { contentRejectedNotification, createNotification, publishFailedNotification } from './notify';
+import {
+  contentRejectedNotification,
+  createNotification,
+  publishFailedNotification,
+} from './notify';
 import type { PublishInput } from './types';
 
 export interface PublishRunResult {
@@ -68,8 +72,7 @@ export async function processTask(taskId: string): Promise<PublishRunResult> {
 
   let result: PublishRunResult;
   try {
-    result =
-      task.status === 'PROCESSING' ? await pollTask(task) : await startPublish(task);
+    result = task.status === 'PROCESSING' ? await pollTask(task) : await startPublish(task);
   } catch (err) {
     result = await handleError(task, err);
   }

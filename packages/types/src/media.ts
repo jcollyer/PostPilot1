@@ -13,17 +13,9 @@ import { mediaStatusSchema, platformSchema } from './domain';
  */
 
 // Video files we accept. Keep this in sync with any client-side `accept` attr.
-export const ACCEPTED_VIDEO_MIME_TYPES = [
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
-] as const;
+export const ACCEPTED_VIDEO_MIME_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'] as const;
 
-export const ACCEPTED_IMAGE_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-] as const;
+export const ACCEPTED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 /** 10 GB — generous headroom over the platforms' own limits. */
 export const MAX_VIDEO_BYTES = 10 * 1024 * 1024 * 1024;

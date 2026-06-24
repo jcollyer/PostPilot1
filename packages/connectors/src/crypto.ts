@@ -1,9 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  randomBytes,
-} from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 /**
  * Authenticated encryption for OAuth tokens at rest (AES-256-GCM).
@@ -28,13 +23,9 @@ function getKey(): Buffer {
       'TOKEN_ENCRYPTION_KEY is not set. Generate one with `openssl rand -base64 32`.',
     );
   }
-  const key = /^[0-9a-fA-F]{64}$/.test(raw)
-    ? Buffer.from(raw, 'hex')
-    : Buffer.from(raw, 'base64');
+  const key = /^[0-9a-fA-F]{64}$/.test(raw) ? Buffer.from(raw, 'hex') : Buffer.from(raw, 'base64');
   if (key.length !== 32) {
-    throw new Error(
-      `TOKEN_ENCRYPTION_KEY must decode to 32 bytes (got ${key.length}).`,
-    );
+    throw new Error(`TOKEN_ENCRYPTION_KEY must decode to 32 bytes (got ${key.length}).`);
   }
   return key;
 }

@@ -22,7 +22,10 @@ export const PLATFORM_LABEL: Record<string, string> = {
   YOUTUBE: 'YouTube Shorts',
 };
 
-export function connectionLabel(configured: boolean, status: string | null | undefined): {
+export function connectionLabel(
+  configured: boolean,
+  status: string | null | undefined,
+): {
   text: string;
   tone: 'ok' | 'warn' | 'bad' | 'muted';
 } {

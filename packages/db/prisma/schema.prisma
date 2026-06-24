@@ -55,6 +55,7 @@ model User {
   uploadSessions      UploadSession[]
   queue               Queue?
   notifications       Notification[]
+  notificationPrefs   NotificationPreference[]
   devices             Device[]
 
   @@map("user")
@@ -596,6 +597,24 @@ model NotificationDelivery {
 
   @@unique([notificationId, channel])
   @@index([notificationId])
+}
+
+/// Per-user opt-out of a notification type on a given channel. Absence of a
+/// row means the channel is enabled (the default routing in channelsFor), so
+/// we only persist the user's explicit overrides.
+model NotificationPreference {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, channel])
+  @@index([userId])
 }
 
 /// A registered mobile device for Expo push notifications.

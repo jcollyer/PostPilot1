@@ -2,7 +2,12 @@ import { Platform } from '@postpilot/db';
 
 import { IG_GRAPH_BASE, IG_GRAPH_VERSION } from '../config';
 import { PublishError, rawFetch } from '../http';
-import { captionWithHashtags, type PollInput, type PublishAdapter, type PublishInput } from '../types';
+import {
+  captionWithHashtags,
+  type PollInput,
+  type PublishAdapter,
+  type PublishInput,
+} from '../types';
 
 /**
  * Instagram Reels via the Graph API (API with Instagram Login). Flow:
@@ -36,15 +41,31 @@ async function igRequest<T>(url: string, method: 'GET' | 'POST'): Promise<T> {
     const msg = `instagram: HTTP ${res.status} ${json?.error?.message ?? text.slice(0, 300)}`;
     // 190/102/10/200/467 = auth/permission; 4/17/32/613 = rate limit.
     if (code && [190, 102, 10, 200, 467].includes(code)) {
-      throw new PublishError(msg, { needsReconnect: true, status: res.status, platform: Platform.INSTAGRAM });
+      throw new PublishError(msg, {
+        needsReconnect: true,
+        status: res.status,
+        platform: Platform.INSTAGRAM,
+      });
     }
     if (code && [4, 17, 32, 613].includes(code)) {
-      throw new PublishError(msg, { recoverable: true, status: res.status, platform: Platform.INSTAGRAM });
+      throw new PublishError(msg, {
+        recoverable: true,
+        status: res.status,
+        platform: Platform.INSTAGRAM,
+      });
     }
     if (res.status === 429 || res.status >= 500) {
-      throw new PublishError(msg, { recoverable: true, status: res.status, platform: Platform.INSTAGRAM });
+      throw new PublishError(msg, {
+        recoverable: true,
+        status: res.status,
+        platform: Platform.INSTAGRAM,
+      });
     }
-    throw new PublishError(msg, { rejected: true, status: res.status, platform: Platform.INSTAGRAM });
+    throw new PublishError(msg, {
+      rejected: true,
+      status: res.status,
+      platform: Platform.INSTAGRAM,
+    });
   }
   return (json ?? {}) as T;
 }
@@ -53,7 +74,10 @@ export const instagramPublishAdapter: PublishAdapter = {
   platform: Platform.INSTAGRAM,
 
   async publish(input: PublishInput) {
-    const caption = captionWithHashtags(input.caption || input.title, input.hashtags).slice(0, 2200);
+    const caption = captionWithHashtags(input.caption || input.title, input.hashtags).slice(
+      0,
+      2200,
+    );
     const params = new URLSearchParams({
       media_type: 'REELS',
       video_url: input.videoUrl,

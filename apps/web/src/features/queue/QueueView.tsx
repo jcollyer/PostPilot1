@@ -203,7 +203,11 @@ export function QueueView() {
                       <span className="min-w-0 flex-1 truncate text-sm">
                         {item.video.title ?? item.video.originalFilename ?? 'Untitled'}
                       </span>
-                      <Button size="sm" variant="ghost" onClick={() => unskip.mutate({ itemId: item.id })}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => unskip.mutate({ itemId: item.id })}
+                      >
                         <RotateCcw className="mr-1 h-4 w-4" /> Restore
                       </Button>
                     </div>
@@ -285,7 +289,7 @@ function SortableRow({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 rounded-md border bg-card p-2 ${
+      className={`bg-card flex items-center gap-2 rounded-md border p-2 ${
         isDragging ? 'shadow-lg' : ''
       }`}
     >
@@ -353,7 +357,13 @@ function TaskChip({ task, onRetry }: { task: QueueTask; onRetry: () => void }) {
     const cls = `${base} bg-emerald-100 text-emerald-700`;
     if (task.postUrl) {
       return (
-        <a href={task.postUrl} target="_blank" rel="noopener noreferrer" className={cls} title={`Posted to ${full}`}>
+        <a
+          href={task.postUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cls}
+          title={`Posted to ${full}`}
+        >
           <Check className="h-3 w-3" /> {label} <ExternalLink className="h-3 w-3" />
         </a>
       );

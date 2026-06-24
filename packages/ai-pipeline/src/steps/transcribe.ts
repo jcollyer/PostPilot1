@@ -30,7 +30,7 @@ export async function transcribeVideo(params: {
     response_format: 'text',
   });
 
-  const text = typeof result === 'string' ? result : (result as { text?: string }).text ?? '';
+  const text = typeof result === 'string' ? result : ((result as { text?: string }).text ?? '');
   const trimmed = text.trim();
   return trimmed.length > 0 ? trimmed : null;
 }

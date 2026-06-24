@@ -29,8 +29,13 @@ export function dHashFromGray9x8(gray: Buffer): string {
   return hex;
 }
 
-const POPCOUNT = Array.from({ length: 16 }, (_, n) =>
-  n.toString(2).split('').filter((b) => b === '1').length,
+const POPCOUNT = Array.from(
+  { length: 16 },
+  (_, n) =>
+    n
+      .toString(2)
+      .split('')
+      .filter((b) => b === '1').length,
 );
 
 /** Hamming distance between two equal-length hex hashes (0..64). */

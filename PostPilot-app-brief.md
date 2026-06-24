@@ -56,19 +56,19 @@ The user should trust the system enough that they don't check it every day — b
 
 Primary
 
-* YouTube Shorts creators
-* TikTok creators
-* Instagram Reels creators
-* Faceless channels
-* Drone creators
-* Travel creators
+- YouTube Shorts creators
+- TikTok creators
+- Instagram Reels creators
+- Faceless channels
+- Drone creators
+- Travel creators
 
 Secondary
 
-* Real estate agents
-* Small businesses
-* Local service businesses
-* Solo entrepreneurs
+- Real estate agents
+- Small businesses
+- Local service businesses
+- Solo entrepreneurs
 
 Avoid enterprise and agency workflows.
 
@@ -107,10 +107,11 @@ Workflow:
 3. AI detects duplicate or near-duplicate uploads.
 4. AI generates:
 
-   * Titles
-   * Captions
-   * Hashtags
-   * Suggested thumbnail frames
+   - Titles
+   - Captions
+   - Hashtags
+   - Suggested thumbnail frames
+
 5. AI categorizes videos automatically.
 6. AI identifies similar content.
 7. AI intelligently spaces similar videos apart.
@@ -128,9 +129,9 @@ The creator should feel like they hired a virtual assistant.
 
 ## Authentication
 
-* Email/password
-* Google login (future)
-* Token-based sessions that work seamlessly across web and the mobile app
+- Email/password
+- Google login (future)
+- Token-based sessions that work seamlessly across web and the mobile app
 
 ---
 
@@ -138,24 +139,24 @@ The creator should feel like they hired a virtual assistant.
 
 Support only:
 
-* TikTok
-* Instagram Reels
-* YouTube Shorts
+- TikTok
+- Instagram Reels
+- YouTube Shorts
 
 Nothing else.
 
-Each connected account stores its OAuth credentials securely, with proactive token refresh handled automatically in the background (see *Reliability & Notifications*).
+Each connected account stores its OAuth credentials securely, with proactive token refresh handled automatically in the background (see _Reliability & Notifications_).
 
 ---
 
 ## Media Library
 
-* Upload videos
-* Cover image (optional)
-* Edit metadata
-* Search
-* Filter
-* Preview
+- Upload videos
+- Cover image (optional)
+- Edit metadata
+- Search
+- Filter
+- Preview
 
 ---
 
@@ -165,14 +166,14 @@ The queue is the heart of the application.
 
 Users can:
 
-* Add videos
-* Remove videos
-* Drag to reorder
-* Pause queue
-* Resume queue
-* Skip videos
-* Move videos
-* See upcoming posts
+- Add videos
+- Remove videos
+- Drag to reorder
+- Pause queue
+- Resume queue
+- Skip videos
+- Move videos
+- See upcoming posts
 
 ---
 
@@ -182,10 +183,10 @@ Simple recurring schedules.
 
 Examples:
 
-* Every day at 9 AM
-* Every weekday
-* Monday/Wednesday/Friday
-* Twice daily
+- Every day at 9 AM
+- Every weekday
+- Monday/Wednesday/Friday
+- Twice daily
 
 Avoid complex calendar interfaces.
 
@@ -215,23 +216,23 @@ The "walk away" promise is honest because the system is built to **detect, attem
 
 **Handled automatically (no human needed):**
 
-* Proactive OAuth token refresh, performed on a schedule well before expiry. TikTok's rotating refresh tokens are persisted on every rotation; Instagram/Meta long-lived tokens are refreshed before they lapse.
-* Transient publish failures are retried with exponential backoff.
-* Platform processing delays are polled until complete.
+- Proactive OAuth token refresh, performed on a schedule well before expiry. TikTok's rotating refresh tokens are persisted on every rotation; Instagram/Meta long-lived tokens are refreshed before they lapse.
+- Transient publish failures are retried with exponential backoff.
+- Platform processing delays are polled until complete.
 
 **Escalated to the user (human-in-the-loop):**
 
-* A connection that can no longer be auto-recovered — revoked access, a password change, the app being removed, or an account requiring full re-authentication.
-* Content rejected by a platform.
-* Any other condition the system cannot resolve on its own.
+- A connection that can no longer be auto-recovered — revoked access, a password change, the app being removed, or an account requiring full re-authentication.
+- Content rejected by a platform.
+- Any other condition the system cannot resolve on its own.
 
 When an unrecoverable failure occurs, the system practices **per-platform graceful degradation**: it pauses only the affected platform, **holds** the impacted videos (never silently consuming or skipping them), surfaces a clear "Reconnect [Platform]" call to action in-app, and notifies the user. The other connected platforms keep publishing untouched, so one dead connection never takes down the whole queue.
 
 Notification channels:
 
-* **Email** (Resend) — default for most alerts.
-* **Mobile push** (Expo) — for app users.
-* **SMS** (Twilio) — reserved for the genuinely urgent "your queue is stalled until you act" alerts only, given SMS cost and US 10DLC registration overhead.
+- **Email** (Resend) — default for most alerts.
+- **Mobile push** (Expo) — for app users.
+- **SMS** (Twilio) — reserved for the genuinely urgent "your queue is stalled until you act" alerts only, given SMS cost and US 10DLC registration overhead.
 
 All alerts are **deduplicated and throttled** — one "reconnect TikTok" message, never one per failed video. The same notification surface powers Queue Health alerts (running low, estimated empty date), so "running low," "empty in 3 days," and "reconnect your account" are simply different states of one alerting system.
 
@@ -243,9 +244,9 @@ All alerts are **deduplicated and throttled** — one "reconnect TikTok" message
 
 Automatically generate:
 
-* Titles
-* Captions
-* Hashtags
+- Titles
+- Captions
+- Hashtags
 
 Creators edit instead of creating from scratch.
 
@@ -271,10 +272,10 @@ Return a minute later with every video populated.
 
 Detect:
 
-* Exact duplicates
-* Near duplicates
-* Trimmed versions
-* Different exports of the same clip
+- Exact duplicates
+- Near duplicates
+- Trimmed versions
+- Different exports of the same clip
 
 Warn before queueing.
 
@@ -346,9 +347,9 @@ Allow creators to override it.
 
 Generate captions optimized for:
 
-* TikTok
-* Instagram
-* YouTube
+- TikTok
+- Instagram
+- YouTube
 
 Rather than using identical text everywhere.
 
@@ -386,11 +387,11 @@ Minimal.
 
 Show only:
 
-* Queue remaining
-* Days of content remaining
-* Next scheduled post
-* Last published
-* Connected accounts (with health/connection status)
+- Queue remaining
+- Days of content remaining
+- Next scheduled post
+- Last published
+- Connected accounts (with health/connection status)
 
 No analytics dashboard.
 
@@ -404,21 +405,21 @@ No engagement graphs.
 
 Do NOT build:
 
-* Analytics
-* Social inbox
-* Comments
-* Team collaboration
-* Approval workflows
-* Agencies
-* Facebook
-* LinkedIn
-* Pinterest
-* X
-* AI chatbots
-* AI image generation
-* Social listening
-* CRM
-* Marketing automation
+- Analytics
+- Social inbox
+- Comments
+- Team collaboration
+- Approval workflows
+- Agencies
+- Facebook
+- LinkedIn
+- Pinterest
+- X
+- AI chatbots
+- AI image generation
+- Social listening
+- CRM
+- Marketing automation
 
 Stay relentlessly focused.
 
@@ -428,16 +429,16 @@ Stay relentlessly focused.
 
 Free
 
-* Limited queue
-* Limited uploads
+- Limited queue
+- Limited uploads
 
 Creator
 
-* $5/month
+- $5/month
 
 Pro
 
-* $8–10/month
+- $8–10/month
 
 Affordable enough to feel like an impulse purchase.
 
@@ -456,64 +457,64 @@ Getting that split right is the central architectural decision. The heavy, long-
 
 ## Monorepo
 
-* **Turborepo + pnpm workspaces**
-* Shared packages for types, Zod schemas, the Prisma client, and domain logic — consumed by web, mobile, and the workers alike.
+- **Turborepo + pnpm workspaces**
+- Shared packages for types, Zod schemas, the Prisma client, and domain logic — consumed by web, mobile, and the workers alike.
 
 ## Frontend — Web
 
-* **Next.js** (App Router) + **TypeScript** + **Tailwind**
-* **shadcn/ui** for components
-* **dnd-kit** for drag-to-reorder in the queue
+- **Next.js** (App Router) + **TypeScript** + **Tailwind**
+- **shadcn/ui** for components
+- **dnd-kit** for drag-to-reorder in the queue
 
 ## Frontend — Mobile
 
-* **React Native via Expo**
-* Primary role: monitor queue health, light queue management, receive push notifications, reconnect accounts
-* Push notifications via Expo
+- **React Native via Expo**
+- Primary role: monitor queue health, light queue management, receive push notifications, reconnect accounts
+- Push notifications via Expo
 
 ## API Layer
 
-* Typed API shared by web and mobile (REST or tRPC)
-* Core domain logic factored into a shared package so the workers reuse the exact same logic
+- Typed API shared by web and mobile (REST or tRPC)
+- Core domain logic factored into a shared package so the workers reuse the exact same logic
 
 ## Authentication
 
-* **Better Auth** — open source, self-hosted, first-class token/mobile support via its Expo plugin
-* Email/password now; Google login later
+- **Better Auth** — open source, self-hosted, first-class token/mobile support via its Expo plugin
+- Email/password now; Google login later
 
 ## Database
 
-* **Neon** (serverless Postgres) + **Prisma**
-* **pgvector** (built into Neon) for embedding storage — powers duplicate detection and smart ordering without a separate vector database
-* Pooled connection string for the serverless/Next.js side; a deliberate, separate connection strategy for long-running workers; migrations run from a single place
+- **Neon** (serverless Postgres) + **Prisma**
+- **pgvector** (built into Neon) for embedding storage — powers duplicate detection and smart ordering without a separate vector database
+- Pooled connection string for the serverless/Next.js side; a deliberate, separate connection strategy for long-running workers; migrations run from a single place
 
 ## Media Storage
 
-* **Cloudflare R2** (zero egress fees — critical when repeatedly pulling video to push to three platforms)
-* **Direct-to-storage uploads** via presigned multipart URLs — video never passes through the app server; the server only issues URLs and records metadata
-* **Public URLs behind a CDN (Cloudflare)** — required because Instagram and TikTok fetch the video file from a hosted URL during publishing
+- **Cloudflare R2** (zero egress fees — critical when repeatedly pulling video to push to three platforms)
+- **Direct-to-storage uploads** via presigned multipart URLs — video never passes through the app server; the server only issues URLs and records metadata
+- **Public URLs behind a CDN (Cloudflare)** — required because Instagram and TikTok fetch the video file from a hosted URL during publishing
 
 ## Background Jobs, Scheduler & Workers
 
-* **Trigger.dev** — durable workflows with built-in cron scheduling, retries, concurrency limits, and step-based pipelines. The AI pipeline maps directly onto its step model; the daily "publish what's due" cron is a first-class feature. Failed steps emit events that drive the notification/alerting system.
-* **Railway** — hosts the persistent worker/processing services (and the app, as desired). Real CPU/RAM and runtime for ffmpeg and AI work that serverless functions cannot provide.
+- **Trigger.dev** — durable workflows with built-in cron scheduling, retries, concurrency limits, and step-based pipelines. The AI pipeline maps directly onto its step model; the daily "publish what's due" cron is a first-class feature. Failed steps emit events that drive the notification/alerting system.
+- **Railway** — hosts the persistent worker/processing services (and the app, as desired). Real CPU/RAM and runtime for ffmpeg and AI work that serverless functions cannot provide.
 
 ## AI Processing Pipeline
 
 For MVP, call hosted APIs to avoid GPU infrastructure entirely:
 
-* **ffmpeg** — frame extraction and thumbnail candidates
-* **Whisper (API)** — transcription, feeding metadata generation
-* **Vision-capable LLM** — titles, captions, hashtags, categorization
-* **pHash + embeddings (pgvector)** — duplicate detection and smart ordering
+- **ffmpeg** — frame extraction and thumbnail candidates
+- **Whisper (API)** — transcription, feeding metadata generation
+- **Vision-capable LLM** — titles, captions, hashtags, categorization
+- **pHash + embeddings (pgvector)** — duplicate detection and smart ordering
 
 All pipeline work runs as durable jobs, never request/response.
 
 ## Notifications
 
-* **Resend** — email
-* **Expo** — mobile push
-* **Twilio** — SMS, urgent alerts only
+- **Resend** — email
+- **Expo** — mobile push
+- **Twilio** — SMS, urgent alerts only
 
 ## Platform Publishing
 
@@ -537,34 +538,34 @@ The clean `Publish(Video)` abstraction is correct, but each adapter is a meaty i
 
 **TikTok (Content Posting API — Direct Post)**
 
-* Fully automated server-side publishing is supported.
-* Unaudited clients have content restricted to private viewing until a compliance audit is passed (can take weeks and requires a compliant UX).
-* No scheduled-publish parameter — Video Queue's own scheduler handles timing.
-* Tight limits: ~6 requests/minute per user token; ~15 posts/day per creator account.
-* No superimposed branding/watermarks permitted (reflected in pricing).
-* Compliant consent/disclosure UX required.
+- Fully automated server-side publishing is supported.
+- Unaudited clients have content restricted to private viewing until a compliance audit is passed (can take weeks and requires a compliant UX).
+- No scheduled-publish parameter — Video Queue's own scheduler handles timing.
+- Tight limits: ~6 requests/minute per user token; ~15 posts/day per creator account.
+- No superimposed branding/watermarks permitted (reflected in pricing).
+- Compliant consent/disclosure UX required.
 
 **Instagram Reels (Graph API)**
 
-* Fully automatable: create container → poll until ready → publish.
-* Requires a Business/Creator account linked to a Facebook Page, a Meta developer app, content-publishing permission, and Meta App Review (~2–4 weeks). Personal accounts excluded.
-* Reels capped around 90 seconds via API.
-* Video must be hosted at a publicly accessible URL (hence R2 + CDN).
-* Roughly 25–100 published posts per 24 hours per account.
+- Fully automatable: create container → poll until ready → publish.
+- Requires a Business/Creator account linked to a Facebook Page, a Meta developer app, content-publishing permission, and Meta App Review (~2–4 weeks). Personal accounts excluded.
+- Reels capped around 90 seconds via API.
+- Video must be hosted at a publicly accessible URL (hence R2 + CDN).
+- Roughly 25–100 published posts per 24 hours per account.
 
 **YouTube Shorts (Data API v3)**
 
-* Upload via OAuth (`youtube.upload` scope).
-* As of the December 2025 quota change, a video upload costs ~100 units (down from ~1,600), so the default 10,000 units/day allows ~100 uploads/day. *(Verify current figures before launch.)*
-* Unverified projects typically have uploads locked to private until audited.
-* A "Short" is simply a qualifying vertical video, not a special upload type.
+- Upload via OAuth (`youtube.upload` scope).
+- As of the December 2025 quota change, a video upload costs ~100 units (down from ~1,600), so the default 10,000 units/day allows ~100 uploads/day. _(Verify current figures before launch.)_
+- Unverified projects typically have uploads locked to private until audited.
+- A "Short" is simply a qualifying vertical video, not a special upload type.
 
 **Cross-cutting**
 
-* Even via official APIs, botlike posting patterns can be throttled or restricted — favor humanized pacing.
-* **Build-vs-buy:** a unified publishing API (e.g. Ayrshare and others) can skip per-platform audits and OAuth boilerplate for MVP, at a per-post cost and third-party dependency, then be replaced with native adapters later behind the same `Publish(Video)` interface.
+- Even via official APIs, botlike posting patterns can be throttled or restricted — favor humanized pacing.
+- **Build-vs-buy:** a unified publishing API (e.g. Ayrshare and others) can skip per-platform audits and OAuth boilerplate for MVP, at a per-post cost and third-party dependency, then be replaced with native adapters later behind the same `Publish(Video)` interface.
 
-> **Credential caveat:** API access approved for a *previous* app is tied to that app's specific reviewed use case and UX. Reusing those credentials for Video Queue — a new product with a new UX, especially one whose original app is being sunset — may fall outside what was approved and can require re-audit/re-review. Confirm this before building on the existing keys, as discovering it at launch is expensive.
+> **Credential caveat:** API access approved for a _previous_ app is tied to that app's specific reviewed use case and UX. Reusing those credentials for Video Queue — a new product with a new UX, especially one whose original app is being sunset — may fall outside what was approved and can require re-audit/re-review. Confirm this before building on the existing keys, as discovering it at launch is expensive.
 
 ---
 
@@ -574,10 +575,10 @@ Never describe Video Queue as a "social media management platform."
 
 Instead describe it as:
 
-* Your Content Queue
-* Your Publishing Pipeline
-* Your Posting Machine
-* Your AI Content Manager
+- Your Content Queue
+- Your Publishing Pipeline
+- Your Posting Machine
+- Your AI Content Manager
 
 Messaging examples:
 

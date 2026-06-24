@@ -78,7 +78,9 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
           await prisma.video.update({ where: { id: videoId }, data: { transcript } });
         }
       } catch (err) {
-        console.warn(`[ai] transcription failed for ${videoId} (continuing): ${describeOpenAIError(err)}`);
+        console.warn(
+          `[ai] transcription failed for ${videoId} (continuing): ${describeOpenAIError(err)}`,
+        );
       }
 
       // 4. Vision metadata + 5. persist (base, per-platform, category, thumb).

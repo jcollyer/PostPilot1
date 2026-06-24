@@ -216,10 +216,14 @@ export function EditMetadataDialog({
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => selectThumbnail.mutate({ videoId: video.id, thumbnailId: t.id })}
+                      onClick={() =>
+                        selectThumbnail.mutate({ videoId: video.id, thumbnailId: t.id })
+                      }
                       disabled={selectThumbnail.isPending}
                       className={`relative h-24 w-14 shrink-0 overflow-hidden rounded-md border-2 ${
-                        selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'
+                        selected
+                          ? 'border-primary'
+                          : 'hover:border-muted-foreground/40 border-transparent'
                       }`}
                     >
                       {t.url ? (
@@ -258,7 +262,11 @@ export function EditMetadataDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateMetadata.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={updateMetadata.isPending}
+          >
             Cancel
           </Button>
           <Button onClick={save} disabled={updateMetadata.isPending}>

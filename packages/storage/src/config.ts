@@ -39,10 +39,10 @@ function required(name: string): string {
 export function isStorageConfigured(): boolean {
   return Boolean(
     process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET &&
-      process.env.R2_PUBLIC_BASE_URL,
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    process.env.R2_BUCKET &&
+    process.env.R2_PUBLIC_BASE_URL,
   );
 }
 
@@ -54,8 +54,7 @@ export function getStorageConfig(): StorageConfig {
 
   const accountId = required('R2_ACCOUNT_ID');
   const endpoint =
-    process.env.R2_ENDPOINT?.replace(/\/+$/, '') ??
-    `https://${accountId}.r2.cloudflarestorage.com`;
+    process.env.R2_ENDPOINT?.replace(/\/+$/, '') ?? `https://${accountId}.r2.cloudflarestorage.com`;
 
   cached = {
     accountId,
