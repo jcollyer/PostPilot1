@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   Film,
+  ListChecks,
   ListPlus,
   Loader2,
   MoreVertical,
@@ -104,6 +105,7 @@ export function MediaLibraryView() {
   const addToQueue = trpc.queue.addVideos.useMutation({
     onSuccess: (res) => {
       utils.queue.invalidate();
+      utils.media.list.invalidate();
       setQueueMsg(
         res.blocked > 0
           ? `${res.blocked} video${res.blocked === 1 ? '' : 's'} couldn’t be queued — add the required TikTok details first.`
@@ -540,6 +542,7 @@ function VideoCard({
   const duration = formatDuration(video.durationSec);
   const canPreview = Boolean(video.cdnUrl) && video.status === 'READY';
   const aiBusy = video.aiStatus === 'PENDING' || video.aiStatus === 'RUNNING';
+  const isQueued = video.inQueue || queued;
 
   return (
     <div
@@ -584,7 +587,15 @@ function VideoCard({
           <Film className="text-muted-foreground h-8 w-8" />
         )}
 
-        <span className="absolute left-1.5 top-1.5 flex gap-1">
+        <span className="absolute left-1.5 top-1.5 flex flex-wrap gap-1">
+          {isQueued ? (
+            <span
+              title="This video is in your queue"
+              className="flex items-center gap-0.5 rounded bg-emerald-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+            >
+              <ListChecks className="h-3 w-3" /> Queued
+            </span>
+          ) : null}
           {video.tiktokNeedsInput ? (
             <span
               title="Needs TikTok details before queueing"
@@ -682,15 +693,15 @@ function VideoCard({
                 ) : (
                   <DropdownMenuItem
                     onClick={onAddToQueue}
-                    disabled={queued}
+                    disabled={isQueued}
                     className="cursor-pointer"
                   >
-                    {queued ? (
+                    {isQueued ? (
                       <Check className="mr-2 h-4 w-4 text-emerald-600" />
                     ) : (
                       <ListPlus className="mr-2 h-4 w-4" />
                     )}
-                    {queued ? 'Added to queue' : 'Add to queue'}
+                    {isQueued ? 'In queue' : 'Add to queue'}
                   </DropdownMenuItem>
                 )
               ) : null}

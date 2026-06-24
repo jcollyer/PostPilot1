@@ -63,6 +63,8 @@ const VIDEO_INCLUDE = {
   selectedThumbnail: true,
   // Only the TikTok row is needed to compute the "requires user input" gate.
   platformMeta: { where: { platform: Platform.TIKTOK } },
+  // Used to flag whether the video is already part of the user's queue.
+  _count: { select: { queueItems: true } },
 } as const;
 type VideoRecord = Prisma.VideoGetPayload<{ include: typeof VIDEO_INCLUDE }>;
 
@@ -126,6 +128,8 @@ function toVideoDto(v: VideoRecord, tiktokConnected = false) {
       : null,
     uploadSessionId: v.uploadSessionId,
     isDuplicate: v.isDuplicate,
+    // True when this video already has a slot in the user's queue.
+    inQueue: v._count.queueItems > 0,
     // True when the user must supply TikTok details before this can be queued.
     tiktokNeedsInput: tiktokNeedsInput(v, tiktokConnected),
     createdAt: v.createdAt,
@@ -361,6 +365,7 @@ export const mediaRouter = router({
         selectedThumbnail: true,
         platformMeta: true,
         thumbnailCandidates: { orderBy: [{ score: 'desc' }, { frameTimeSec: 'asc' }] },
+        _count: { select: { queueItems: true } },
       },
     });
     if (!video) throw new TRPCError({ code: 'NOT_FOUND', message: 'Video not found.' });
