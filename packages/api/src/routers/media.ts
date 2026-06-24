@@ -153,6 +153,7 @@ export const mediaRouter = router({
         durationSec: input.durationSec ?? null,
         width: input.width ?? null,
         height: input.height ?? null,
+        hashtags: [],
         uploadSessionId: input.uploadSessionId ?? null,
       },
     });
