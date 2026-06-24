@@ -467,7 +467,9 @@ export function MediaLibraryView() {
       <Dialog open={confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete {selectedCount} video{selectedCount === 1 ? '' : 's'}?</DialogTitle>
+            <DialogTitle>
+              Delete {selectedCount} video{selectedCount === 1 ? '' : 's'}?
+            </DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground text-sm">
             This permanently removes the selected video{selectedCount === 1 ? '' : 's'} and their

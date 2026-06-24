@@ -591,48 +591,46 @@ export const mediaRouter = router({
    * recomputed gate so the client can immediately reflect whether the video is
    * still blocked from the queue.
    */
-  setTiktokMeta: protectedProcedure
-    .input(setTiktokMetaSchema)
-    .mutation(async ({ ctx, input }) => {
-      await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
+  setTiktokMeta: protectedProcedure.input(setTiktokMetaSchema).mutation(async ({ ctx, input }) => {
+    await ownedVideo(ctx.prisma, ctx.userId, input.videoId);
 
-      // Enforce the "branded content can't be private" rule server-side too.
-      const reasons = evaluateTikTokRequirements({
-        privacy: input.privacy,
-        allowComment: input.allowComment,
-        allowDuet: input.allowDuet,
-        allowStitch: input.allowStitch,
-        commercialDisclosure: input.commercialDisclosure,
-        brandOrganic: input.brandOrganic,
-        brandedContent: input.brandedContent,
-      });
+    // Enforce the "branded content can't be private" rule server-side too.
+    const reasons = evaluateTikTokRequirements({
+      privacy: input.privacy,
+      allowComment: input.allowComment,
+      allowDuet: input.allowDuet,
+      allowStitch: input.allowStitch,
+      commercialDisclosure: input.commercialDisclosure,
+      brandOrganic: input.brandOrganic,
+      brandedContent: input.brandedContent,
+    });
 
-      const data = {
-        tiktokPrivacy: input.privacy,
-        tiktokAllowComment: input.allowComment,
-        tiktokAllowDuet: input.allowDuet,
-        tiktokAllowStitch: input.allowStitch,
-        tiktokCommercial: input.commercialDisclosure,
-        tiktokBrandOrganic: input.brandOrganic,
-        tiktokBrandedContent: input.brandedContent,
-        edited: true,
-      };
-      await ctx.prisma.videoPlatformMeta.upsert({
-        where: { videoId_platform: { videoId: input.videoId, platform: Platform.TIKTOK } },
-        // `hashtags` is a non-nullable array with no DB default, so it must be
-        // set when creating the row (only the update path leaves captions/tags
-        // untouched).
-        create: {
-          videoId: input.videoId,
-          platform: Platform.TIKTOK,
-          aiGenerated: false,
-          hashtags: [],
-          ...data,
-        },
-        update: data,
-      });
-      return { success: true as const, blockingReasons: reasons };
-    }),
+    const data = {
+      tiktokPrivacy: input.privacy,
+      tiktokAllowComment: input.allowComment,
+      tiktokAllowDuet: input.allowDuet,
+      tiktokAllowStitch: input.allowStitch,
+      tiktokCommercial: input.commercialDisclosure,
+      tiktokBrandOrganic: input.brandOrganic,
+      tiktokBrandedContent: input.brandedContent,
+      edited: true,
+    };
+    await ctx.prisma.videoPlatformMeta.upsert({
+      where: { videoId_platform: { videoId: input.videoId, platform: Platform.TIKTOK } },
+      // `hashtags` is a non-nullable array with no DB default, so it must be
+      // set when creating the row (only the update path leaves captions/tags
+      // untouched).
+      create: {
+        videoId: input.videoId,
+        platform: Platform.TIKTOK,
+        aiGenerated: false,
+        hashtags: [],
+        ...data,
+      },
+      update: data,
+    });
+    return { success: true as const, blockingReasons: reasons };
+  }),
 
   /** Videos flagged as (near-)duplicates, with their matches — for a dupe review view. */
   duplicates: protectedProcedure.query(async ({ ctx }) => {

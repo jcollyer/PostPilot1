@@ -95,7 +95,9 @@ export function tiktokConsentDeclaration(opts: TikTokPostOptions): string {
  * The label TikTok will apply to the post, derived from the brand selections.
  * Returns null when commercial disclosure is off.
  */
-export function tiktokContentLabel(opts: TikTokPostOptions): 'Promotional content' | 'Paid partnership' | null {
+export function tiktokContentLabel(
+  opts: TikTokPostOptions,
+): 'Promotional content' | 'Paid partnership' | null {
   if (!opts.commercialDisclosure) return null;
   if (opts.brandedContent) return 'Paid partnership';
   if (opts.brandOrganic) return 'Promotional content';

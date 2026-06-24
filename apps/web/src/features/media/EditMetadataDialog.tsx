@@ -441,7 +441,9 @@ function CheckRow({
       />
       <span className="text-sm">
         <span className="font-medium">{label}</span>
-        {description ? <span className="text-muted-foreground block text-xs">{description}</span> : null}
+        {description ? (
+          <span className="text-muted-foreground block text-xs">{description}</span>
+        ) : null}
       </span>
     </label>
   );
@@ -476,7 +478,9 @@ function TikTokRequirementsEditor({
   const [brandedContent, setBrandedContent] = useState(base.brandedContent);
 
   // Latest creator info (privacy options + which interactions are disabled).
-  const creatorInfo = trpc.connections.tiktokCreatorInfo.useQuery(undefined, { enabled: connected });
+  const creatorInfo = trpc.connections.tiktokCreatorInfo.useQuery(undefined, {
+    enabled: connected,
+  });
   const ci = creatorInfo.data;
   const live = ci?.available ? ci.info : null;
   const creatorNickname = live?.creatorNickname ?? null;
@@ -582,7 +586,7 @@ function TikTokRequirementsEditor({
             aria-invalid={privacyMissing || undefined}
             className={`h-9 ${
               privacyMissing
-                ? 'border-destructive text-destructive focus:ring-destructive ring-1 ring-destructive/40'
+                ? 'border-destructive text-destructive focus:ring-destructive ring-destructive/40 ring-1'
                 : ''
             }`}
           >
@@ -659,7 +663,7 @@ function TikTokRequirementsEditor({
               onChange={setBrandedContent}
             />
             {commercialNeedsChoice ? (
-              <p className="text-amber-600 flex items-start gap-1.5 text-xs">
+              <p className="flex items-start gap-1.5 text-xs text-amber-600">
                 <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 You need to indicate if your content promotes yourself, a third party, or both.
               </p>
