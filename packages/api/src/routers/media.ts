@@ -11,9 +11,11 @@ import {
   listVideosSchema,
   regenerateMetadataSchema,
   selectThumbnailSchema,
+  setCategoryManySchema,
   setPlatformMetaSchema,
   updateVideoMetadataSchema,
   videoIdSchema,
+  videoIdsSchema,
 } from '@postpilot/types';
 import {
   abortMultipart,
@@ -386,6 +388,63 @@ export const mediaRouter = router({
     return { success: true as const };
   }),
 
+  /** Bulk-delete videos (and their storage objects) the user owns. */
+  removeMany: protectedProcedure.input(videoIdsSchema).mutation(async ({ ctx, input }) => {
+    const videos = await ctx.prisma.video.findMany({
+      where: { id: { in: input.videoIds }, userId: ctx.userId },
+      select: { id: true, uploadSessionId: true },
+    });
+    if (videos.length === 0) return { deleted: 0 };
+
+    if (isStorageConfigured()) {
+      await Promise.all(
+        videos.map((v) => deletePrefix(videoPrefix(ctx.userId, v.id)).catch(() => {})),
+      );
+    }
+
+    // Keep each upload session's videoCount in sync.
+    const sessionDecrements = new Map<string, number>();
+    for (const v of videos) {
+      if (v.uploadSessionId) {
+        sessionDecrements.set(
+          v.uploadSessionId,
+          (sessionDecrements.get(v.uploadSessionId) ?? 0) + 1,
+        );
+      }
+    }
+    await Promise.all(
+      [...sessionDecrements].map(([id, count]) =>
+        ctx.prisma.uploadSession
+          .update({ where: { id }, data: { videoCount: { decrement: count } } })
+          .catch(() => {}),
+      ),
+    );
+
+    const { count } = await ctx.prisma.video.deleteMany({
+      where: { id: { in: videos.map((v) => v.id) }, userId: ctx.userId },
+    });
+    return { deleted: count };
+  }),
+
+  /** Assign (or clear) a category for many videos the user owns at once. */
+  setCategoryMany: protectedProcedure
+    .input(setCategoryManySchema)
+    .mutation(async ({ ctx, input }) => {
+      if (input.categoryId) {
+        const category = await ctx.prisma.category.findFirst({
+          where: { id: input.categoryId, userId: ctx.userId },
+          select: { id: true },
+        });
+        if (!category) throw new TRPCError({ code: 'NOT_FOUND', message: 'Category not found.' });
+      }
+
+      const { count } = await ctx.prisma.video.updateMany({
+        where: { id: { in: input.videoIds }, userId: ctx.userId },
+        data: { categoryId: input.categoryId },
+      });
+      return { updated: count };
+    }),
+
   // -------------------------------------------------------------------------
   // AI pipeline (heavy work runs in the worker — these just read state and
   // enqueue; they never call ffmpeg / OpenAI in the request handler)
@@ -419,6 +478,7 @@ export const mediaRouter = router({
         aiStatus: input.onlyFailed ? 'FAILED' : { not: 'RUNNING' },
       };
       if (input.videoId) where.id = input.videoId;
+      if (input.videoIds) where.id = { in: input.videoIds };
       if (input.uploadSessionId) where.uploadSessionId = input.uploadSessionId;
 
       const { count } = await ctx.prisma.video.updateMany({

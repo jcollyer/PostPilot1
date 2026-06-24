@@ -12,8 +12,10 @@ import {
   Play,
   Search,
   Sparkles,
+  Tag,
   Trash2,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 
 import { mediaStatusSchema, type MediaStatus } from '@postpilot/types';
@@ -98,6 +100,68 @@ export function MediaLibraryView() {
 
   const [editing, setEditing] = useState<VideoDto | null>(null);
   const [previewing, setPreviewing] = useState<VideoDto | null>(null);
+
+  // ---- Multi-select ----
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const clearSelection = () => setSelectedIds(new Set());
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // Drop any selected ids that have scrolled out of the current result set.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(videos.map((v) => v.id));
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [videos]);
+
+  const selectedCount = selectedIds.size;
+  const selectionActive = selectedCount > 0;
+  const allVisibleSelected = videos.length > 0 && videos.every((v) => selectedIds.has(v.id));
+  const toggleSelectAll = () =>
+    setSelectedIds(allVisibleSelected ? new Set() : new Set(videos.map((v) => v.id)));
+
+  const removeMany = trpc.media.removeMany.useMutation({
+    onSuccess: () => {
+      clearSelection();
+      setConfirmDelete(false);
+      refresh();
+      aiSummary.refetch();
+    },
+  });
+  const setCategoryMany = trpc.media.setCategoryMany.useMutation({
+    onSuccess: () => {
+      clearSelection();
+      refresh();
+    },
+  });
+
+  const bulkAddToQueue = () => {
+    const ids = [...selectedIds];
+    addToQueue.mutate({ videoIds: ids });
+    setQueuedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+    clearSelection();
+  };
+  const bulkRegenerate = () => regenerate.mutate({ videoIds: [...selectedIds] });
+
+  const bulkBusy =
+    removeMany.isPending ||
+    setCategoryMany.isPending ||
+    addToQueue.isPending ||
+    regenerate.isPending;
 
   const hasFilters = Boolean(search || status || categoryId);
 
@@ -191,6 +255,85 @@ export function MediaLibraryView() {
         </select>
       </div>
 
+      {selectionActive ? (
+        <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm backdrop-blur">
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
+            aria-label="Clear selection"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+          >
+            {allVisibleSelected ? 'Deselect all' : 'Select all'}
+          </button>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={bulkAddToQueue} disabled={bulkBusy}>
+              <ListPlus className="mr-2 h-4 w-4" />
+              Add to queue
+            </Button>
+            <Button size="sm" variant="outline" onClick={bulkRegenerate} disabled={bulkBusy}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate metadata
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" disabled={bulkBusy}>
+                  <Tag className="mr-2 h-4 w-4" />
+                  Set category
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
+                {categories.data?.length ? (
+                  categories.data.map((c) => (
+                    <DropdownMenuItem
+                      key={c.id}
+                      className="cursor-pointer"
+                      onClick={() =>
+                        setCategoryMany.mutate({ videoIds: [...selectedIds], categoryId: c.id })
+                      }
+                    >
+                      <span
+                        className="mr-2 h-3 w-3 rounded-full"
+                        style={{ backgroundColor: c.color ?? 'rgb(148 163 184)' }}
+                      />
+                      {c.name}
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <DropdownMenuItem disabled>No categories yet</DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="text-muted-foreground cursor-pointer"
+                  onClick={() =>
+                    setCategoryMany.mutate({ videoIds: [...selectedIds], categoryId: null })
+                  }
+                >
+                  <X className="mr-2 h-4 w-4" /> Remove category
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setConfirmDelete(true)}
+              disabled={bulkBusy}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {query.isLoading ? (
         <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading your library…
@@ -204,6 +347,9 @@ export function MediaLibraryView() {
               <VideoCard
                 key={video.id}
                 video={video}
+                selected={selectedIds.has(video.id)}
+                selectionActive={selectionActive}
+                onToggleSelect={() => toggleSelect(video.id)}
                 onPreview={() => setPreviewing(video)}
                 onEdit={() => setEditing(video)}
                 onDelete={() => remove.mutate({ videoId: video.id })}
@@ -244,6 +390,31 @@ export function MediaLibraryView() {
       ) : null}
 
       <PreviewDialog video={previewing} onOpenChange={(o) => !o && setPreviewing(null)} />
+
+      <Dialog open={confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete {selectedCount} video{selectedCount === 1 ? '' : 's'}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground text-sm">
+            This permanently removes the selected video{selectedCount === 1 ? '' : 's'} and their
+            files. This can’t be undone.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => removeMany.mutate({ videoIds: [...selectedIds] })}
+              disabled={removeMany.isPending}
+            >
+              {removeMany.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -273,6 +444,9 @@ const STATUS_BADGE: Record<MediaStatus, { label: string; className: string }> = 
 
 function VideoCard({
   video,
+  selected,
+  selectionActive,
+  onToggleSelect,
   onPreview,
   onEdit,
   onDelete,
@@ -281,6 +455,9 @@ function VideoCard({
   queued,
 }: {
   video: VideoDto;
+  selected: boolean;
+  selectionActive: boolean;
+  onToggleSelect: () => void;
   onPreview: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -294,7 +471,24 @@ function VideoCard({
   const aiBusy = video.aiStatus === 'PENDING' || video.aiStatus === 'RUNNING';
 
   return (
-    <div className="bg-card group overflow-hidden rounded-lg border">
+    <div
+      className={`bg-card group relative overflow-hidden rounded-lg border transition ${
+        selected ? 'ring-primary ring-2' : ''
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onToggleSelect}
+        aria-label={selected ? 'Deselect video' : 'Select video'}
+        aria-pressed={selected}
+        className={`absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-md border shadow-sm transition ${
+          selected
+            ? 'border-primary bg-primary text-primary-foreground'
+            : 'border-white/70 bg-black/40 text-transparent hover:text-white'
+        } ${selectionActive || selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      >
+        <Check className="h-4 w-4" />
+      </button>
       <button
         type="button"
         onClick={canPreview ? onPreview : undefined}
@@ -323,9 +517,10 @@ function VideoCard({
           {aiBusy ? (
             <span
               title="AI is processing this video"
-              className="flex items-center rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white"
+              className="flex items-center gap-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white"
             >
               <Loader2 className="h-3 w-3 animate-spin" />
+              Processing
             </span>
           ) : video.aiStatus === 'COMPLETED' ? (
             <span

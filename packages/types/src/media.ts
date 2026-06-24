@@ -107,6 +107,19 @@ export type ListVideosInput = z.infer<typeof listVideosSchema>;
 export const videoIdSchema = z.object({ videoId: z.string().min(1) });
 export type VideoIdInput = z.infer<typeof videoIdSchema>;
 
+/** Bulk operations over a set of videos (delete, recategorize, etc.). */
+export const videoIdsSchema = z.object({
+  videoIds: z.array(z.string().min(1)).min(1).max(1000),
+});
+export type VideoIdsInput = z.infer<typeof videoIdsSchema>;
+
+/** Assign (or clear) a category for many videos at once. */
+export const setCategoryManySchema = z.object({
+  videoIds: z.array(z.string().min(1)).min(1).max(1000),
+  categoryId: z.string().min(1).nullable(),
+});
+export type SetCategoryManyInput = z.infer<typeof setCategoryManySchema>;
+
 // ---------------------------------------------------------------------------
 // AI pipeline (Chunk 5)
 // ---------------------------------------------------------------------------
@@ -118,6 +131,7 @@ export type VideoIdInput = z.infer<typeof videoIdSchema>;
  */
 export const regenerateMetadataSchema = z.object({
   videoId: z.string().min(1).optional(),
+  videoIds: z.array(z.string().min(1)).min(1).max(1000).optional(),
   uploadSessionId: z.string().min(1).optional(),
   onlyFailed: z.boolean().optional().default(false),
 });
