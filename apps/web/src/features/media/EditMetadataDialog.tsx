@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, ImagePlus, Info, Loader2, Sparkles, TriangleAlert } from 'lucide-react';
+import { Check, ImagePlus, Info, Loader2, Sparkles, TriangleAlert, UserRound } from 'lucide-react';
 
 import {
   ACCEPTED_IMAGE_MIME_TYPES,
@@ -507,6 +507,8 @@ function TikTokRequirementsEditor({
   const ci = creatorInfo.data;
   const live = ci?.available ? ci.info : null;
   const creatorNickname = live?.creatorNickname ?? null;
+  const creatorUsername = live?.creatorUsername ?? null;
+  const creatorAvatarUrl = live?.creatorAvatarUrl ?? null;
 
   const knownLevels = TIKTOK_PRIVACY_LEVELS as readonly string[];
   const liveOptions = (live?.privacyLevelOptions ?? []).filter((o) =>
@@ -563,12 +565,46 @@ function TikTokRequirementsEditor({
 
   return (
     <div className="space-y-3 rounded-md border p-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{PLATFORM_LABELS.TIKTOK} requirements</p>
-        {creatorNickname ? (
-          <span className="text-muted-foreground text-xs">Posting as {creatorNickname}</span>
-        ) : null}
-      </div>
+      <p className="text-sm font-medium">{PLATFORM_LABELS.TIKTOK} requirements</p>
+
+      {/* 1A: clearly show which TikTok account this will post to. */}
+      {connected ? (
+        <div className="flex items-center gap-2.5 rounded-md border bg-muted/40 p-2.5">
+          {creatorAvatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={creatorAvatarUrl}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+              <UserRound className="h-4 w-4" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
+              Posting to TikTok as
+            </p>
+            {creatorNickname ? (
+              <p className="truncate text-sm font-semibold leading-tight">
+                {creatorNickname}
+                {creatorUsername ? (
+                  <span className="text-muted-foreground ml-1 font-normal">@{creatorUsername}</span>
+                ) : null}
+              </p>
+            ) : creatorInfo.isLoading ? (
+              <p className="text-muted-foreground flex items-center gap-1.5 text-sm leading-tight">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading account…
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm leading-tight">
+                Connected TikTok account
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {!connected ? (
         <p className="text-muted-foreground flex items-start gap-1.5 text-xs">

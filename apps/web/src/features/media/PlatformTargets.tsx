@@ -38,6 +38,37 @@ export function useConnectedPlatforms(): { connected: Set<Platform>; isLoading: 
 }
 
 /**
+ * The connected TikTok creator's account, pulled live from `creator_info`.
+ *
+ * TikTok guideline 1A: the upload page must display the creator's nickname so
+ * the user knows which account the content will be posted to. We retrieve the
+ * latest creator info (as 1 requires) rather than a stale cached name. The
+ * underlying query is shared/deduped by React Query, so calling this from both
+ * the library and the editor is a single TikTok API hit.
+ *
+ * Returns nulls until the live call resolves (or if TikTok isn't connected).
+ */
+export function useTikTokAccount(): {
+  nickname: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  isLoading: boolean;
+} {
+  const { connected } = useConnectedPlatforms();
+  const tiktokConnected = connected.has('TIKTOK');
+  const creatorInfo = trpc.connections.tiktokCreatorInfo.useQuery(undefined, {
+    enabled: tiktokConnected,
+  });
+  const live = creatorInfo.data?.available ? creatorInfo.data.info : null;
+  return {
+    nickname: live?.creatorNickname ?? null,
+    username: live?.creatorUsername ?? null,
+    avatarUrl: live?.creatorAvatarUrl ?? null,
+    isLoading: tiktokConnected && creatorInfo.isLoading,
+  };
+}
+
+/**
  * Resolve a stored `targetPlatforms` value into the set of toggles to show as
  * selected. Empty (the default) means "all", so every toggle is on.
  */
@@ -66,12 +97,15 @@ export function PlatformChips({
   onChange,
   size = 'sm',
   disabled,
+  tiktokAvatarUrl,
 }: {
   selected: Set<Platform>;
   connected: Set<Platform>;
   onChange: (next: Set<Platform>) => void;
   size?: 'sm' | 'xs';
   disabled?: boolean;
+  /** Connected TikTok creator's avatar, shown inside the TikTok pill (1A context). */
+  tiktokAvatarUrl?: string | null;
 }) {
   const toggle = (p: Platform) => {
     const next = new Set(selected);
@@ -92,6 +126,8 @@ export function PlatformChips({
         const on = selected.has(p);
         const isConnected = connected.has(p);
         const label = size === 'xs' ? SHORT_BADGE[p] : PLATFORM_SHORT[p];
+        const showAvatar = p === 'TIKTOK' && isConnected && Boolean(tiktokAvatarUrl);
+        const avatarSize = size === 'xs' ? 'h-3.5 w-3.5' : 'h-4 w-4';
         return (
           <button
             key={p}
@@ -113,6 +149,14 @@ export function PlatformChips({
                 : 'border-input text-muted-foreground hover:bg-accent'
             }`}
           >
+            {showAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={tiktokAvatarUrl as string}
+                alt=""
+                className={`-ml-0.5 shrink-0 rounded-full object-cover ${avatarSize}`}
+              />
+            ) : null}
             {label}
             {!isConnected ? (
               <span

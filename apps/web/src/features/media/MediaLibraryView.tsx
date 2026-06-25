@@ -45,6 +45,7 @@ import {
   selectedFromTargets,
   targetsFromSelected,
   useConnectedPlatforms,
+  useTikTokAccount,
 } from './PlatformTargets';
 import { UploadDialog } from './UploadDialog';
 import type { VideoDto } from './types';
@@ -68,6 +69,7 @@ export function MediaLibraryView() {
 
   const categories = trpc.media.listCategories.useQuery();
   const { connected } = useConnectedPlatforms();
+  const tiktokAccount = useTikTokAccount();
 
   // Per-video platform targeting. The card keeps optimistic local state, so we
   // only refresh the queue (whose plan can change) — not the media list.
@@ -477,6 +479,8 @@ export function MediaLibraryView() {
                 }}
                 queued={queuedIds.has(video.id)}
                 connected={connected}
+                tiktokAccountLabel={tiktokAccount.nickname ?? tiktokAccount.username}
+                tiktokAvatarUrl={tiktokAccount.avatarUrl}
                 onSetTargets={(platforms) => setTargets.mutate({ videoId: video.id, platforms })}
               />
             ))}
@@ -605,6 +609,8 @@ function VideoCard({
   onAddToQueue,
   queued,
   connected,
+  tiktokAccountLabel,
+  tiktokAvatarUrl,
   onSetTargets,
 }: {
   video: VideoDto;
@@ -618,6 +624,8 @@ function VideoCard({
   onAddToQueue: () => void;
   queued: boolean;
   connected: Set<Platform>;
+  tiktokAccountLabel: string | null;
+  tiktokAvatarUrl: string | null;
   onSetTargets: (platforms: Platform[]) => void;
 }) {
   const badge = STATUS_BADGE[video.status];
@@ -854,7 +862,16 @@ function VideoCard({
             connected={connected}
             onChange={onToggleTarget}
             size="xs"
+            tiktokAvatarUrl={tiktokAvatarUrl}
           />
+          {targetSel.has('TIKTOK') && connected.has('TIKTOK') && tiktokAccountLabel ? (
+            <p
+              className="text-muted-foreground truncate text-[10px]"
+              title={`Will post to TikTok as ${tiktokAccountLabel}`}
+            >
+              TikTok: <span className="font-medium">{tiktokAccountLabel}</span>
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
