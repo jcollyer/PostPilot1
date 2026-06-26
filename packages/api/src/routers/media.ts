@@ -151,6 +151,12 @@ function toVideoDto(v: VideoRecord, tiktokConnected = false) {
     inQueue: v._count.queueItems > 0,
     // True when the user must supply TikTok details before this can be queued.
     tiktokNeedsInput: tiktokNeedsInput(v, tiktokConnected),
+    // True when this video discloses branded content for TikTok — drives the
+    // consent declaration wording shown before queueing (Branded Content Policy).
+    tiktokBranded: (() => {
+      const o = tiktokOptionsFromMeta(v.platformMeta.find((m) => m.platform === Platform.TIKTOK));
+      return o.commercialDisclosure && o.brandedContent;
+    })(),
     createdAt: v.createdAt,
     updatedAt: v.updatedAt,
   };

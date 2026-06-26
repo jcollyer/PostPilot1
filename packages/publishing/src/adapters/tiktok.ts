@@ -113,6 +113,29 @@ export const tiktokPublishAdapter: PublishAdapter = {
     const creator = await fetchTikTokCreatorInfo(input.accessToken);
     const opts = input.tiktok;
 
+    // 1B: if creator_info says this account can't accept a new post right now
+    // (e.g. the daily posting cap is reached — TikTok returns no privacy
+    // options), stop the current attempt instead of forcing the post through.
+    // Recoverable → the runner backs off and retries later, and surfaces a
+    // "try again later" failure notification if it never clears.
+    if (!creator.canPost) {
+      throw new PublishError(
+        'tiktok creator_info: account cannot accept a new post right now (try again later)',
+        { recoverable: true, platform: Platform.TIKTOK },
+      );
+    }
+
+    // 1C: the video must not exceed the creator's max allowed post duration.
+    // This is terminal (a too-long file won't pass on retry), so reject it with
+    // a clear message rather than burning retries.
+    const maxDuration = creator.maxVideoPostDurationSec;
+    if (maxDuration != null && input.durationSec != null && input.durationSec > maxDuration) {
+      throw new PublishError(
+        `tiktok: video is ${Math.round(input.durationSec)}s but this account allows at most ${maxDuration}s`,
+        { rejected: true, platform: Platform.TIKTOK },
+      );
+    }
+
     // Honor the creator's chosen privacy if it's still an allowed option;
     // otherwise fall back to the safest configured default.
     const chosen = opts?.privacy;

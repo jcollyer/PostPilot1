@@ -18,9 +18,9 @@ export function getInitials(value: string | null | undefined): string {
   );
 }
 
-/** Friendly first name from a full name or, failing that, an email. */
-export function getFirstName(name: string | null | undefined, email: string | null | undefined) {
-  const fromName = name?.trim().split(/\s+/)[0];
+/** Friendly greeting name from a display name or, failing that, an email. */
+export function getGreetingName(name: string | null | undefined, email: string | null | undefined) {
+  const fromName = name?.trim();
   if (fromName) return fromName;
   return email ?? 'there';
 }

@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   Film,
+  Info,
   ListChecks,
   ListPlus,
   Loader2,
@@ -20,7 +21,13 @@ import {
   X,
 } from 'lucide-react';
 
-import { mediaStatusSchema, type MediaStatus, type Platform } from '@postpilot/types';
+import {
+  DEFAULT_TIKTOK_OPTIONS,
+  mediaStatusSchema,
+  tiktokConsentDeclaration,
+  type MediaStatus,
+  type Platform,
+} from '@postpilot/types';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -128,14 +135,69 @@ export function MediaLibraryView() {
     onSuccess: (res) => {
       utils.queue.invalidate();
       utils.media.list.invalidate();
-      setQueueMsg(
-        res.blocked > 0
-          ? `${res.blocked} video${res.blocked === 1 ? '' : 's'} couldn’t be queued — add the required TikTok details first.`
-          : null,
-      );
+      const parts: string[] = [];
+      if (res.added > 0) {
+        // 5d: tell the user processing can take a few minutes after publishing.
+        parts.push(
+          `${res.added} video${res.added === 1 ? '' : 's'} added to the queue. After publishing, it can take a few minutes to process and appear on your profile.`,
+        );
+      }
+      if (res.blocked > 0) {
+        parts.push(
+          `${res.blocked} video${res.blocked === 1 ? '' : 's'} couldn’t be queued — add the required TikTok details first.`,
+        );
+      }
+      setQueueMsg(parts.length ? parts.join(' ') : null);
     },
   });
   const [queuedIds, setQueuedIds] = useState<Set<string>>(new Set());
+
+  // TikTok requires express consent (with a declaration) before content is sent
+  // to TikTok, so queueing a TikTok-targeted video goes through a confirmation.
+  const [consent, setConsent] = useState<{
+    videoIds: string[];
+    addableIds: string[];
+    branded: boolean;
+  } | null>(null);
+
+  // A video posts to TikTok when it explicitly targets it, or when it's left on
+  // the "all connected" default (empty targetPlatforms) and TikTok is connected.
+  const videoTargetsTikTok = (v: VideoDto) =>
+    connected.has('TIKTOK') &&
+    (v.targetPlatforms.length === 0 || v.targetPlatforms.includes('TIKTOK'));
+
+  const performQueue = (videoIds: string[], addableIds: string[]) => {
+    addToQueue.mutate({ videoIds });
+    setQueuedIds((prev) => {
+      const next = new Set(prev);
+      addableIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  // Gate queueing behind the TikTok consent dialog when any to-be-queued video
+  // will actually post to TikTok; otherwise queue straight away.
+  const requestQueue = (videoIds: string[]) => {
+    const vids = videos.filter((v) => videoIds.includes(v.id));
+    const addable = vids.filter((v) => !v.tiktokNeedsInput);
+    const addableIds = addable.map((v) => v.id);
+    const tiktokAddable = addable.filter(videoTargetsTikTok);
+    if (tiktokAddable.length > 0) {
+      setConsent({
+        videoIds,
+        addableIds,
+        branded: tiktokAddable.some((v) => v.tiktokBranded),
+      });
+      return;
+    }
+    performQueue(videoIds, addableIds);
+  };
+
+  const confirmConsent = () => {
+    if (!consent) return;
+    performQueue(consent.videoIds, consent.addableIds);
+    setConsent(null);
+  };
 
   const [editing, setEditing] = useState<VideoDto | null>(null);
   const [previewing, setPreviewing] = useState<VideoDto | null>(null);
@@ -195,18 +257,9 @@ export function MediaLibraryView() {
   const addableSelectedCount = selectedCount - blockedSelectedCount;
 
   const bulkAddToQueue = () => {
-    // Only optimistically mark the ones that will actually be queued; the
-    // server skips any that still need TikTok details.
-    const ids = [...selectedIds];
-    const addable = videos
-      .filter((v) => selectedIds.has(v.id) && !v.tiktokNeedsInput)
-      .map((v) => v.id);
-    addToQueue.mutate({ videoIds: ids });
-    setQueuedIds((prev) => {
-      const next = new Set(prev);
-      addable.forEach((id) => next.add(id));
-      return next;
-    });
+    // Routes through requestQueue, which gates on TikTok consent when needed and
+    // optimistically marks only the videos the server will actually queue.
+    requestQueue([...selectedIds]);
     clearSelection();
   };
   const bulkRegenerate = () => regenerate.mutate({ videoIds: [...selectedIds] });
@@ -473,10 +526,7 @@ export function MediaLibraryView() {
                 onEdit={() => setEditing(video)}
                 onDelete={() => remove.mutate({ videoId: video.id })}
                 deleting={remove.isPending && remove.variables?.videoId === video.id}
-                onAddToQueue={() => {
-                  addToQueue.mutate({ videoIds: [video.id] });
-                  setQueuedIds((prev) => new Set(prev).add(video.id));
-                }}
+                onAddToQueue={() => requestQueue([video.id])}
                 queued={queuedIds.has(video.id)}
                 connected={connected}
                 tiktokAccountLabel={tiktokAccount.nickname ?? tiktokAccount.username}
@@ -566,6 +616,39 @@ export function MediaLibraryView() {
             <Button onClick={applyBulkPlatforms} disabled={setTargetsMany.isPending}>
               {setTargetsMany.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Apply
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* TikTok consent: declaration (§4) + express consent before upload (§5c) +
+          processing-time notice (§5d), shown before any TikTok-bound queueing. */}
+      <Dialog open={Boolean(consent)} onOpenChange={(o) => !o && setConsent(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Post to TikTok</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-1 text-sm">
+            <p>
+              {tiktokConsentDeclaration({
+                ...DEFAULT_TIKTOK_OPTIONS,
+                commercialDisclosure: consent?.branded ?? false,
+                brandedContent: consent?.branded ?? false,
+              })}
+            </p>
+            <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              After you publish, it can take a few minutes for TikTok to finish processing your post
+              before it appears on your profile.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setConsent(null)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmConsent} disabled={addToQueue.isPending}>
+              {addToQueue.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Agree &amp; add to queue
             </Button>
           </div>
         </DialogContent>

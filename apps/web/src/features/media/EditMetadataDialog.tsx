@@ -309,6 +309,7 @@ export function EditMetadataDialog({
                 videoId={video.id}
                 connected={detail.data.tiktokConnected}
                 initial={detail.data.tiktok}
+                durationSec={video.durationSec}
                 onSaved={() => {
                   detail.refetch();
                   onSaved();
@@ -484,11 +485,13 @@ function TikTokRequirementsEditor({
   videoId,
   connected,
   initial,
+  durationSec,
   onSaved,
 }: {
   videoId: string;
   connected: boolean;
   initial: TikTokPostOptions;
+  durationSec: number | null;
   onSaved: () => void;
 }) {
   const base = initial ?? DEFAULT_TIKTOK_OPTIONS;
@@ -520,6 +523,11 @@ function TikTokRequirementsEditor({
   const commentDisabled = live?.commentDisabled ?? false;
   const duetDisabled = live?.duetDisabled ?? false;
   const stitchDisabled = live?.stitchDisabled ?? false;
+
+  // 1C: flag when this video is longer than the creator's max allowed duration.
+  const maxDuration = live?.maxVideoPostDurationSec ?? null;
+  const tooLong =
+    maxDuration != null && durationSec != null && durationSec > maxDuration;
 
   // Branded content can't be private — disable SELF_ONLY and clear it if chosen.
   const brandedActive = commercial && brandedContent;
@@ -628,6 +636,14 @@ function TikTokRequirementsEditor({
         </p>
       ) : null}
 
+      {tooLong ? (
+        <p className="text-destructive flex items-start gap-1.5 text-xs">
+          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          This video is {Math.round(durationSec as number)}s, but this TikTok account allows at most{' '}
+          {maxDuration}s. Trim it before posting, or it will be rejected.
+        </p>
+      ) : null}
+
       {/* Privacy — no default; the user must choose. */}
       <div className="space-y-1">
         <Label
@@ -655,9 +671,18 @@ function TikTokRequirementsEditor({
             {privacyOptions.map((level) => {
               const disableSelfOnly = level === 'SELF_ONLY' && brandedActive;
               return (
-                <SelectItem key={level} value={level} disabled={disableSelfOnly}>
+                <SelectItem
+                  key={level}
+                  value={level}
+                  disabled={disableSelfOnly}
+                  title={
+                    disableSelfOnly
+                      ? 'Branded content visibility cannot be set to private.'
+                      : undefined
+                  }
+                >
                   {TIKTOK_PRIVACY_LABELS[level]}
-                  {disableSelfOnly ? ' — not allowed for branded content' : ''}
+                  {disableSelfOnly ? ' — branded content can’t be private' : ''}
                 </SelectItem>
               );
             })}
@@ -667,6 +692,12 @@ function TikTokRequirementsEditor({
           <p className="text-destructive flex items-start gap-1.5 text-xs">
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             This can&apos;t be blank — choose who can view this video to add it to the queue.
+          </p>
+        ) : null}
+        {brandedActive ? (
+          <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Branded content visibility cannot be set to private.
           </p>
         ) : null}
       </div>
