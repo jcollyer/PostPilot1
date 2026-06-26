@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { DashboardView } from '@/features/dashboard/DashboardView';
 import { getServerSession } from '@/server/session';
-import { getFirstName } from '@/lib/utils';
+import { getGreetingName } from '@/lib/utils';
 
 /**
  * /home — the dashboard: queue health, next/last post, and connection status.
@@ -12,7 +12,7 @@ export default async function HomePage() {
   const session = await getServerSession();
   if (!session?.user) redirect('/');
 
-  const greetingName = getFirstName(session.user.name, session.user.email);
+  const greetingName = getGreetingName(session.user.name, session.user.email);
 
   return <DashboardView greeting={greetingName} />;
 }

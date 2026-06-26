@@ -9,12 +9,12 @@ import {
   ExternalLink,
   Film,
   Layers,
-  Loader2,
   Pause,
 } from 'lucide-react';
 import { PLATFORM_LABELS, type Platform } from '@postpilot/types';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { trpc } from '@/lib/trpc/client';
 
 function fmtDate(d: Date | string | null | undefined): string {
@@ -36,11 +36,7 @@ export function DashboardView({ greeting }: { greeting: string }) {
   const { data, isLoading } = trpc.dashboard.overview.useQuery();
 
   if (isLoading || !data) {
-    return (
-      <div className="text-muted-foreground flex items-center gap-2 py-20 text-sm">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading your dashboard…
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const { health } = data;
@@ -153,6 +149,70 @@ export function DashboardView({ greeting }: { greeting: string }) {
             <div key={c.platform} className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">{PLATFORM_LABELS[c.platform as Platform]}</span>
               <ConnHealth configured={c.configured} status={c.connection?.status ?? null} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      {/* Greeting + status */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-7 w-28 rounded-full" />
+      </div>
+
+      {/* Queue health */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-32" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Next / Last / Library */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <Skeleton className="h-3 w-28" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-12 w-8 shrink-0 rounded" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Connections */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-5 w-20 rounded-full" />
             </div>
           ))}
         </CardContent>
