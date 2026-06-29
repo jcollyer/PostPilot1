@@ -14,6 +14,7 @@ type Mode = 'signin' | 'signup' | 'forgot';
 
 interface AuthFormProps {
   hasGoogle: boolean;
+  initialMode?: Mode;
 }
 
 /**
@@ -22,10 +23,10 @@ interface AuthFormProps {
  * verification before they can sign in, so signup ends on a "check your email"
  * notice rather than an immediate redirect.
  */
-export function AuthForm({ hasGoogle }: AuthFormProps) {
+export function AuthForm({ hasGoogle, initialMode = 'signin' }: AuthFormProps) {
   const router = useRouter();
 
-  const [mode, setMode] = useState<Mode>('signin');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

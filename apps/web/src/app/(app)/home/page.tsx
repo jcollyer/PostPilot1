@@ -10,7 +10,7 @@ import { getGreetingName } from '@/lib/utils';
  */
 export default async function HomePage() {
   const session = await getServerSession();
-  if (!session?.user) redirect('/');
+  if (!session?.user) redirect('/signin');
 
   const greetingName = getGreetingName(session.user.name, session.user.email);
 

@@ -9,7 +9,7 @@ import { getServerSession } from '@/server/session';
  */
 export default async function QueuePage() {
   const session = await getServerSession();
-  if (!session?.user) redirect('/');
+  if (!session?.user) redirect('/signin');
 
   return <QueueView />;
 }

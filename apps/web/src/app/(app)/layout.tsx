@@ -10,7 +10,7 @@ import { getServerSession } from '@/server/session';
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession();
-  if (!session?.user) redirect('/');
+  if (!session?.user) redirect('/signin');
 
   return (
     <div className="flex min-h-dvh flex-col">
