@@ -26,7 +26,7 @@ import {
 import {
   DEFAULT_TIKTOK_OPTIONS,
   mediaStatusSchema,
-  tiktokConsentDeclaration,
+  tiktokConsentSegments,
   type MediaStatus,
   type Platform,
 } from '@postpilot/types';
@@ -750,11 +750,25 @@ export function MediaLibraryView() {
             </DialogHeader>
             <div className="space-y-3 pt-1 text-sm">
               <p>
-                {tiktokConsentDeclaration({
+                {tiktokConsentSegments({
                   ...DEFAULT_TIKTOK_OPTIONS,
                   commercialDisclosure: consent?.branded ?? false,
                   brandedContent: consent?.branded ?? false,
-                })}
+                }).map((seg, i) =>
+                  seg.href ? (
+                    <a
+                      key={i}
+                      href={seg.href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="underline underline-offset-2 hover:text-foreground"
+                    >
+                      {seg.text}
+                    </a>
+                  ) : (
+                    <span key={i}>{seg.text}</span>
+                  ),
+                )}
               </p>
               <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
