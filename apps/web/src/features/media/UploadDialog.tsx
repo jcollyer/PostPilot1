@@ -30,7 +30,14 @@ interface UploadItem {
 
 const ACCEPT = ACCEPTED_VIDEO_MIME_TYPES.join(',');
 
-export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
+export function UploadDialog({
+  onUploaded,
+  folderId = null,
+}: {
+  onUploaded: () => void;
+  /** Folder new uploads land in (null = the root). */
+  folderId?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<UploadItem[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -51,6 +58,7 @@ export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
           filename: item.file.name,
           contentType: item.file.type as (typeof ACCEPTED_VIDEO_MIME_TYPES)[number],
           fileSize: item.file.size,
+          folderId,
         });
 
         const parts = await uploadParts({
@@ -85,7 +93,7 @@ export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
         }
       }
     },
-    [abortUpload, completeUpload, initUpload, onUploaded, patch],
+    [abortUpload, completeUpload, initUpload, onUploaded, patch, folderId],
   );
 
   const addFiles = useCallback(

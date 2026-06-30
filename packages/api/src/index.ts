@@ -2,6 +2,7 @@ import { router } from './trpc';
 import { userRouter } from './routers/user';
 import { connectionsRouter } from './routers/connections';
 import { mediaRouter } from './routers/media';
+import { folderRouter } from './routers/folder';
 import { queueRouter } from './routers/queue';
 import { notificationsRouter } from './routers/notifications';
 import { dashboardRouter } from './routers/dashboard';
@@ -10,6 +11,7 @@ export const appRouter = router({
   user: userRouter,
   connections: connectionsRouter,
   media: mediaRouter,
+  folder: folderRouter,
   queue: queueRouter,
   notifications: notificationsRouter,
   dashboard: dashboardRouter,

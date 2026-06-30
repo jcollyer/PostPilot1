@@ -41,6 +41,8 @@ export const initUploadSchema = z.object({
     .positive()
     .max(MAX_VIDEO_BYTES, 'That video is larger than the 10 GB limit'),
   uploadSessionId: z.string().min(1).optional(),
+  // Folder the upload should land in (null/omitted = the root).
+  folderId: z.string().min(1).nullish(),
   // Optional client-provided probe metadata (best effort; AI pipeline confirms).
   durationSec: z.number().positive().optional(),
   width: z.number().int().positive().optional(),

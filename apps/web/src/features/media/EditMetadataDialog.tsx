@@ -21,13 +21,13 @@ import {
 
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -138,17 +138,17 @@ export function EditMetadataDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit details</DialogTitle>
-          <DialogDescription>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="gap-0 p-0">
+        <SheetHeader className="border-b p-6 pr-12">
+          <SheetTitle>Edit details</SheetTitle>
+          <SheetDescription>
             Base title, caption, and hashtags. Per-platform variants come from the AI pipeline and
             can be tuned per platform later.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-6">
           <div className="space-y-1.5">
             <Label htmlFor="video-title">Title</Label>
             <Input
@@ -319,7 +319,7 @@ export function EditMetadataDialog({
           ) : null}
         </div>
 
-        <DialogFooter>
+        <SheetFooter className="border-t p-6">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -331,9 +331,9 @@ export function EditMetadataDialog({
             {updateMetadata.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 

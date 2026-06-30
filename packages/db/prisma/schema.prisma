@@ -51,6 +51,7 @@ model User {
   // Product
   platformConnections PlatformConnection[]
   videos              Video[]
+  folders             Folder[]
   categories          Category[]
   uploadSessions      UploadSession[]
   queue               Queue?
@@ -289,6 +290,35 @@ model UploadSession {
 
 /// AI-generated collection (Travel, Drone, Sunsets, …) used for filtering and
 /// for building queues.
+/// A user-managed folder in the Media Library. Modeled as an adjacency list:
+/// each folder stores only its direct `parentId` (null = a root-level folder).
+/// This matches the UI's lazy, one-level-at-a-time loading — fetching a folder's
+/// contents is a single indexed lookup. Videos point at a folder via
+/// `Video.folderId` (null = the root). Deleting a folder cascades to its child
+/// folders here; the videos inside are removed in application code so their R2
+/// objects get cleaned up too (see folderRouter.remove).
+model Folder {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Self-relation for the tree. onUpdate: NoAction breaks the self-relation
+  // cycle the validator would otherwise flag (cuid ids never change).
+  parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  children Folder[] @relation("FolderTree")
+  videos   Video[]
+
+  // No two sibling folders may share a name. NOTE: Postgres treats NULLs as
+  // distinct, so this does NOT constrain root-level names against each other —
+  // root sibling uniqueness is enforced in application code.
+  @@unique([userId, parentId, name])
+  @@index([userId, parentId])
+}
+
 model Category {
   id        String   @id @default(cuid())
   userId    String
@@ -352,6 +382,11 @@ model Video {
   aiProcessedAt  DateTime?
   categoryId     String?
 
+  // Media Library folder this video lives in (null = the root). A video lives
+  // in exactly one folder. onDelete: SetNull is a safety net — folder deletes
+  // remove the videos explicitly (with R2 cleanup) before the row disappears.
+  folderId       String?
+
   // Duplicate detection / smart ordering.
   pHash       String?
   embedding   Unsupported("vector(1536)")?
@@ -365,6 +400,7 @@ model Video {
 
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   category          Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  folder            Folder?             @relation(fields: [folderId], references: [id], onDelete: SetNull)
   uploadSession     UploadSession?      @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
   // onUpdate: NoAction breaks the referential-action cycle Prisma would
   // otherwise detect between Video and ThumbnailCandidate (cuid ids never
@@ -384,6 +420,7 @@ model Video {
   @@index([userId])
   @@index([userId, status])
   @@index([categoryId])
+  @@index([userId, folderId])
   @@index([uploadSessionId])
   @@index([duplicateOfId])
 }

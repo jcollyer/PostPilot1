@@ -5,6 +5,8 @@ import {
   Check,
   Copy,
   Film,
+  FolderInput,
+  FolderPlus,
   Info,
   ListChecks,
   ListPlus,
@@ -55,7 +57,13 @@ import {
   useTikTokAccount,
 } from './PlatformTargets';
 import { UploadDialog } from './UploadDialog';
-import type { VideoDto } from './types';
+import { FolderBreadcrumbs } from './FolderBreadcrumbs';
+import { FolderCard } from './FolderCard';
+import { FolderTree } from './FolderTree';
+import { MoveToFolderDialog } from './MoveToFolderDialog';
+import { NewFolderDialog } from './NewFolderDialog';
+import { RenameFolderDialog } from './RenameFolderDialog';
+import type { FolderDto, VideoDto } from './types';
 import { formatBytes, formatDuration } from './upload';
 
 const STATUS_OPTIONS = mediaStatusSchema.options;
@@ -63,10 +71,26 @@ const STATUS_OPTIONS = mediaStatusSchema.options;
 export function MediaLibraryView() {
   const utils = trpc.useUtils();
 
+  // Refresh whichever list is on screen. Browse mode reads `folder.list`, search
+  // mode reads `media.list`, so mutations invalidate both (plus the tree).
+  const refresh = () => {
+    void utils.media.list.invalidate();
+    void utils.folder.list.invalidate();
+    void utils.folder.children.invalidate();
+  };
+
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<MediaStatus | ''>('');
   const [categoryId, setCategoryId] = useState('');
+
+  // Folder navigation. null = the library root. While a search/filter is active
+  // we show flat results across the whole library instead of a single folder.
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [renamingFolder, setRenamingFolder] = useState<FolderDto | null>(null);
+  const [deletingFolder, setDeletingFolder] = useState<FolderDto | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
 
   // Debounce the search box so we don't refetch on every keystroke.
   useEffect(() => {
@@ -85,7 +109,7 @@ export function MediaLibraryView() {
   });
   const setTargetsMany = trpc.media.setTargetPlatformsMany.useMutation({
     onSuccess: () => {
-      utils.media.list.invalidate();
+      refresh();
       utils.queue.invalidate();
     },
   });
@@ -104,37 +128,65 @@ export function MediaLibraryView() {
   // Keep the grid fresh while the worker is processing.
   useEffect(() => {
     if (!busy) return;
-    const t = setInterval(() => utils.media.list.invalidate(), 4000);
+    const t = setInterval(() => refresh(), 4000);
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, utils]);
 
   const regenerate = trpc.media.regenerateMetadata.useMutation({
     onSuccess: () => {
       aiSummary.refetch();
-      utils.media.list.invalidate();
+      refresh();
     },
   });
 
-  const query = trpc.media.list.useInfiniteQuery(
+  // Any active search/filter switches the view to flat, library-wide results.
+  const isSearching = search.length > 0 || Boolean(status) || Boolean(categoryId);
+
+  // Browse mode — the current folder's direct contents (folders + its videos).
+  const browseQuery = trpc.folder.list.useInfiniteQuery(
+    { parentId: currentFolderId, limit: 24 },
+    { getNextPageParam: (last) => last.videos.nextCursor, enabled: !isSearching },
+  );
+
+  // Search mode — flat video results across the whole library (folder ignored).
+  const searchQuery = trpc.media.list.useInfiniteQuery(
     {
       limit: 24,
       search: search || undefined,
       status: status || undefined,
       categoryId: categoryId || undefined,
     },
-    { getNextPageParam: (last) => last.nextCursor },
+    { getNextPageParam: (last) => last.nextCursor, enabled: isSearching },
   );
 
-  const videos = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
+  const query = isSearching ? searchQuery : browseQuery;
 
-  const refresh = () => utils.media.list.invalidate();
+  const videos = useMemo<VideoDto[]>(() => {
+    if (isSearching) return searchQuery.data?.pages.flatMap((p) => p.items) ?? [];
+    return browseQuery.data?.pages.flatMap((p) => p.videos.items) ?? [];
+  }, [isSearching, searchQuery.data, browseQuery.data]);
+
+  // Folders only appear when browsing (not in search results).
+  const folders = useMemo<FolderDto[]>(
+    () => (isSearching ? [] : (browseQuery.data?.pages.flatMap((p) => p.folders) ?? [])),
+    [isSearching, browseQuery.data],
+  );
 
   const remove = trpc.media.remove.useMutation({ onSuccess: refresh });
+  const removeFolder = trpc.folder.remove.useMutation({
+    onSuccess: () => {
+      setDeletingFolder(null);
+      refresh();
+      void utils.folder.breadcrumbs.invalidate();
+      aiSummary.refetch();
+    },
+  });
   const [queueMsg, setQueueMsg] = useState<string | null>(null);
   const addToQueue = trpc.queue.addVideos.useMutation({
     onSuccess: (res) => {
       utils.queue.invalidate();
-      utils.media.list.invalidate();
+      refresh();
       const parts: string[] = [];
       if (res.added > 0) {
         // 5d: tell the user processing can take a few minutes after publishing.
@@ -210,6 +262,16 @@ export function MediaLibraryView() {
   const [bulkPlatforms, setBulkPlatforms] = useState<Set<Platform>>(() => selectedFromTargets([]));
 
   const clearSelection = () => setSelectedIds(new Set());
+
+  // Navigate the main pane to a folder (null = root). Clears any selection and
+  // the search box so you land in a clean browse view of that folder.
+  const navigateToFolder = (id: string | null) => {
+    setCurrentFolderId(id);
+    clearSelection();
+    setSearchInput('');
+    setSearch('');
+  };
+
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -290,385 +352,508 @@ export function MediaLibraryView() {
   const hasFilters = Boolean(search || status || categoryId);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Media Library</h1>
-          <p className="text-muted-foreground text-sm">
-            Upload your backlog once — PostPilot organizes it and builds your queue.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => regenerate.mutate({})}
-            disabled={regenerate.isPending}
-          >
-            {regenerate.isPending || busy ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="mr-2 h-4 w-4" />
-            )}
-            Generate metadata
-          </Button>
-          <UploadDialog onUploaded={refresh} />
-        </div>
-      </div>
-
-      {aiSummary.data && aiSummary.data.total > 0 ? (
-        <div className="text-muted-foreground bg-muted/30 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-xs">
-          <span className="text-foreground font-medium">AI metadata</span>
-          {busy ? (
-            <span className="flex items-center gap-1.5">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              {aiSummary.data.RUNNING} processing · {aiSummary.data.PENDING} queued
+    <div className="mx-auto flex max-w-6xl gap-6">
+      {/* Left: lazy-loading folder tree (Dropbox-style). */}
+      <aside className="hidden w-60 shrink-0 lg:block">
+        <div className="sticky top-4 space-y-2">
+          <div className="flex items-center justify-between px-2">
+            <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+              Folders
             </span>
-          ) : (
-            <span>{aiSummary.data.COMPLETED} processed</span>
-          )}
-          {aiSummary.data.FAILED > 0 ? (
             <button
               type="button"
-              onClick={() => regenerate.mutate({ onlyFailed: true })}
-              className="text-destructive hover:underline"
+              onClick={() => setNewFolderOpen(true)}
+              aria-label="New folder"
+              title="New folder"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted flex h-6 w-6 items-center justify-center rounded-md"
             >
-              Retry {aiSummary.data.FAILED} failed
+              <FolderPlus className="h-4 w-4" />
             </button>
-          ) : null}
-          {busy ? (
-            <span className="text-muted-foreground/70">
-              The AI worker drains the queue — counts update as it runs.
-            </span>
-          ) : null}
+          </div>
+          <FolderTree currentFolderId={currentFolderId} onSelect={navigateToFolder} />
         </div>
-      ) : null}
+      </aside>
 
-      {queueMsg ? (
-        <div className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          <span className="flex items-center gap-2">
-            <TriangleAlert className="h-4 w-4 shrink-0" />
-            {queueMsg}
-          </span>
-          <button
-            type="button"
-            onClick={() => setQueueMsg(null)}
-            className="text-amber-700 hover:text-amber-900"
-            aria-label="Dismiss"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-56 flex-1">
-          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search title, caption, transcript, filename…"
-            className="pl-9"
-          />
-        </div>
-        <Select
-          value={status || 'all'}
-          onValueChange={(v) => setStatus(v === 'all' ? '' : (v as MediaStatus))}
-        >
-          <SelectTrigger className="w-auto min-w-[150px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s.charAt(0) + s.slice(1).toLowerCase()}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={categoryId || 'all'}
-          onValueChange={(v) => setCategoryId(v === 'all' ? '' : v)}
-        >
-          <SelectTrigger className="w-auto min-w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {categories.data?.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectionActive ? (
-        <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm backdrop-blur">
-          <button
-            type="button"
-            onClick={clearSelection}
-            className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
-            aria-label="Clear selection"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-medium">{selectedCount} selected</span>
-          <button
-            type="button"
-            onClick={toggleSelectAll}
-            className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-          >
-            {allVisibleSelected ? 'Deselect all' : 'Select all'}
-          </button>
-
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {blockedSelectedCount > 0 ? (
-              <span
-                className="flex items-center gap-1 text-xs text-amber-600"
-                title="These videos need TikTok details before they can be queued."
-              >
-                <TriangleAlert className="h-3.5 w-3.5" />
-                {blockedSelectedCount} need TikTok details
-              </span>
-            ) : null}
+      {/* Right: breadcrumbs + contents of the current folder (or search results). */}
+      <div className="min-w-0 flex-1 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Media Library</h1>
+            <FolderBreadcrumbs currentFolderId={currentFolderId} onNavigate={navigateToFolder} />
+          </div>
+          <div className="flex items-center gap-2">
             <Button
-              size="sm"
               variant="outline"
-              onClick={bulkAddToQueue}
-              disabled={bulkBusy || addableSelectedCount === 0}
-              title={
-                addableSelectedCount === 0
-                  ? 'Every selected video still needs TikTok details.'
-                  : undefined
-              }
+              onClick={() => regenerate.mutate({})}
+              disabled={regenerate.isPending}
             >
-              <ListPlus className="mr-2 h-4 w-4" />
-              Add to queue
-            </Button>
-            <Button size="sm" variant="outline" onClick={bulkRegenerate} disabled={bulkBusy}>
-              <Sparkles className="mr-2 h-4 w-4" />
+              {regenerate.isPending || busy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
               Generate metadata
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" disabled={bulkBusy}>
-                  <Tag className="mr-2 h-4 w-4" />
-                  Set category
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
-                {categories.data?.length ? (
-                  categories.data.map((c) => (
-                    <DropdownMenuItem
-                      key={c.id}
-                      className="cursor-pointer"
-                      onClick={() =>
-                        setCategoryMany.mutate({ videoIds: [...selectedIds], categoryId: c.id })
-                      }
-                    >
-                      <span
-                        className="mr-2 h-3 w-3 rounded-full"
-                        style={{ backgroundColor: c.color ?? 'rgb(148 163 184)' }}
-                      />
-                      {c.name}
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <DropdownMenuItem disabled>No categories yet</DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  className="text-muted-foreground cursor-pointer"
-                  onClick={() =>
-                    setCategoryMany.mutate({ videoIds: [...selectedIds], categoryId: null })
-                  }
-                >
-                  <X className="mr-2 h-4 w-4" /> Remove category
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" variant="outline" onClick={openPlatformsDialog} disabled={bulkBusy}>
-              <Share2 className="mr-2 h-4 w-4" />
-              Set platforms
+            <Button variant="outline" onClick={() => setNewFolderOpen(true)}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              New folder
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive hover:text-destructive"
-              onClick={() => setConfirmDelete(true)}
-              disabled={bulkBusy}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
+            <UploadDialog onUploaded={refresh} folderId={currentFolderId} />
           </div>
         </div>
-      ) : null}
 
-      {query.isLoading ? (
-        <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading your library…
-        </div>
-      ) : videos.length === 0 ? (
-        <EmptyState hasFilters={hasFilters} />
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {videos.map((video) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                selected={selectedIds.has(video.id)}
-                selectionActive={selectionActive}
-                onToggleSelect={() => toggleSelect(video.id)}
-                onPreview={() => setPreviewing(video)}
-                onEdit={() => setEditing(video)}
-                onDelete={() => remove.mutate({ videoId: video.id })}
-                deleting={remove.isPending && remove.variables?.videoId === video.id}
-                onAddToQueue={() => requestQueue([video.id])}
-                queued={queuedIds.has(video.id)}
-                connected={connected}
-                tiktokAccountLabel={tiktokAccount.nickname ?? tiktokAccount.username}
-                tiktokAvatarUrl={tiktokAccount.avatarUrl}
-                onSetTargets={(platforms) => setTargets.mutate({ videoId: video.id, platforms })}
-              />
-            ))}
-          </div>
-
-          {query.hasNextPage ? (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => query.fetchNextPage()}
-                disabled={query.isFetchingNextPage}
+        {aiSummary.data && aiSummary.data.total > 0 ? (
+          <div className="text-muted-foreground bg-muted/30 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-xs">
+            <span className="text-foreground font-medium">AI metadata</span>
+            {busy ? (
+              <span className="flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {aiSummary.data.RUNNING} processing · {aiSummary.data.PENDING} queued
+              </span>
+            ) : (
+              <span>{aiSummary.data.COMPLETED} processed</span>
+            )}
+            {aiSummary.data.FAILED > 0 ? (
+              <button
+                type="button"
+                onClick={() => regenerate.mutate({ onlyFailed: true })}
+                className="text-destructive hover:underline"
               >
-                {query.isFetchingNextPage ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Load more
-              </Button>
-            </div>
-          ) : null}
-        </>
-      )}
-
-      {editing ? (
-        <EditMetadataDialog
-          video={editing}
-          open={Boolean(editing)}
-          onOpenChange={(o) => !o && setEditing(null)}
-          onSaved={refresh}
-        />
-      ) : null}
-
-      <PreviewDialog video={previewing} onOpenChange={(o) => !o && setPreviewing(null)} />
-
-      <Dialog open={confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(false)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              Delete {selectedCount} video{selectedCount === 1 ? '' : 's'}?
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-muted-foreground text-sm">
-            This permanently removes the selected video{selectedCount === 1 ? '' : 's'} and their
-            files. This can’t be undone.
-          </p>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => removeMany.mutate({ videoIds: [...selectedIds] })}
-              disabled={removeMany.isPending}
-            >
-              {removeMany.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Delete
-            </Button>
+                Retry {aiSummary.data.FAILED} failed
+              </button>
+            ) : null}
+            {busy ? (
+              <span className="text-muted-foreground/70">
+                The AI worker drains the queue — counts update as it runs.
+              </span>
+            ) : null}
           </div>
-        </DialogContent>
-      </Dialog>
+        ) : null}
 
-      <Dialog open={platformsDialog} onOpenChange={(o) => !o && setPlatformsDialog(false)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              Post {selectedCount} video{selectedCount === 1 ? '' : 's'} to…
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-muted-foreground text-sm">
-            Choose which platforms these videos publish to. Platforms you haven’t connected yet are
-            marked — they’ll publish once connected.
-          </p>
-          <div className="py-1">
-            <PlatformChips
-              selected={bulkPlatforms}
-              connected={connected}
-              onChange={setBulkPlatforms}
+        {queueMsg ? (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <span className="flex items-center gap-2">
+              <TriangleAlert className="h-4 w-4 shrink-0" />
+              {queueMsg}
+            </span>
+            <button
+              type="button"
+              onClick={() => setQueueMsg(null)}
+              className="text-amber-700 hover:text-amber-900"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-56 flex-1">
+            <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search title, caption, transcript, filename…"
+              className="pl-9"
             />
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setPlatformsDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={applyBulkPlatforms} disabled={setTargetsMany.isPending}>
-              {setTargetsMany.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Apply
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <Select
+            value={status || 'all'}
+            onValueChange={(v) => setStatus(v === 'all' ? '' : (v as MediaStatus))}
+          >
+            <SelectTrigger className="w-auto min-w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s.charAt(0) + s.slice(1).toLowerCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={categoryId || 'all'}
+            onValueChange={(v) => setCategoryId(v === 'all' ? '' : v)}
+          >
+            <SelectTrigger className="w-auto min-w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.data?.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* TikTok consent: declaration (§4) + express consent before upload (§5c) +
+        {selectionActive ? (
+          <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm backdrop-blur">
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
+              aria-label="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+            >
+              {allVisibleSelected ? 'Deselect all' : 'Select all'}
+            </button>
+
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {blockedSelectedCount > 0 ? (
+                <span
+                  className="flex items-center gap-1 text-xs text-amber-600"
+                  title="These videos need TikTok details before they can be queued."
+                >
+                  <TriangleAlert className="h-3.5 w-3.5" />
+                  {blockedSelectedCount} need TikTok details
+                </span>
+              ) : null}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={bulkAddToQueue}
+                disabled={bulkBusy || addableSelectedCount === 0}
+                title={
+                  addableSelectedCount === 0
+                    ? 'Every selected video still needs TikTok details.'
+                    : undefined
+                }
+              >
+                <ListPlus className="mr-2 h-4 w-4" />
+                Add to queue
+              </Button>
+              <Button size="sm" variant="outline" onClick={bulkRegenerate} disabled={bulkBusy}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate metadata
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={bulkBusy}>
+                    <Tag className="mr-2 h-4 w-4" />
+                    Set category
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
+                  {categories.data?.length ? (
+                    categories.data.map((c) => (
+                      <DropdownMenuItem
+                        key={c.id}
+                        className="cursor-pointer"
+                        onClick={() =>
+                          setCategoryMany.mutate({ videoIds: [...selectedIds], categoryId: c.id })
+                        }
+                      >
+                        <span
+                          className="mr-2 h-3 w-3 rounded-full"
+                          style={{ backgroundColor: c.color ?? 'rgb(148 163 184)' }}
+                        />
+                        {c.name}
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>No categories yet</DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    className="text-muted-foreground cursor-pointer"
+                    onClick={() =>
+                      setCategoryMany.mutate({ videoIds: [...selectedIds], categoryId: null })
+                    }
+                  >
+                    <X className="mr-2 h-4 w-4" /> Remove category
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" variant="outline" onClick={openPlatformsDialog} disabled={bulkBusy}>
+                <Share2 className="mr-2 h-4 w-4" />
+                Set platforms
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setMoveOpen(true)}
+                disabled={bulkBusy}
+              >
+                <FolderInput className="mr-2 h-4 w-4" />
+                Move
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDelete(true)}
+                disabled={bulkBusy}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {query.isLoading ? (
+          <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading your library…
+          </div>
+        ) : folders.length === 0 && videos.length === 0 ? (
+          <EmptyState
+            hasFilters={hasFilters}
+            isSearching={isSearching}
+            inFolder={currentFolderId !== null}
+          />
+        ) : (
+          <>
+            {folders.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {folders.map((folder) => (
+                  <FolderCard
+                    key={folder.id}
+                    folder={folder}
+                    onOpen={() => navigateToFolder(folder.id)}
+                    onRename={() => setRenamingFolder(folder)}
+                    onDelete={() => setDeletingFolder(folder)}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {videos.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {videos.map((video) => (
+                  <VideoCard
+                    key={video.id}
+                    video={video}
+                    selected={selectedIds.has(video.id)}
+                    selectionActive={selectionActive}
+                    onToggleSelect={() => toggleSelect(video.id)}
+                    onPreview={() => setPreviewing(video)}
+                    onEdit={() => setEditing(video)}
+                    onDelete={() => remove.mutate({ videoId: video.id })}
+                    deleting={remove.isPending && remove.variables?.videoId === video.id}
+                    onAddToQueue={() => requestQueue([video.id])}
+                    queued={queuedIds.has(video.id)}
+                    connected={connected}
+                    tiktokAccountLabel={tiktokAccount.nickname ?? tiktokAccount.username}
+                    tiktokAvatarUrl={tiktokAccount.avatarUrl}
+                    onSetTargets={(platforms) =>
+                      setTargets.mutate({ videoId: video.id, platforms })
+                    }
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {query.hasNextPage ? (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => query.fetchNextPage()}
+                  disabled={query.isFetchingNextPage}
+                >
+                  {query.isFetchingNextPage ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Load more
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+
+        {editing ? (
+          <EditMetadataDialog
+            video={editing}
+            open={Boolean(editing)}
+            onOpenChange={(o) => !o && setEditing(null)}
+            onSaved={refresh}
+          />
+        ) : null}
+
+        <PreviewDialog video={previewing} onOpenChange={(o) => !o && setPreviewing(null)} />
+
+        <Dialog open={confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(false)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                Delete {selectedCount} video{selectedCount === 1 ? '' : 's'}?
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground text-sm">
+              This permanently removes the selected video{selectedCount === 1 ? '' : 's'} and their
+              files. This can’t be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => removeMany.mutate({ videoIds: [...selectedIds] })}
+                disabled={removeMany.isPending}
+              >
+                {removeMany.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={platformsDialog} onOpenChange={(o) => !o && setPlatformsDialog(false)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                Post {selectedCount} video{selectedCount === 1 ? '' : 's'} to…
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground text-sm">
+              Choose which platforms these videos publish to. Platforms you haven’t connected yet
+              are marked — they’ll publish once connected.
+            </p>
+            <div className="py-1">
+              <PlatformChips
+                selected={bulkPlatforms}
+                connected={connected}
+                onChange={setBulkPlatforms}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setPlatformsDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={applyBulkPlatforms} disabled={setTargetsMany.isPending}>
+                {setTargetsMany.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Apply
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* TikTok consent: declaration (§4) + express consent before upload (§5c) +
           processing-time notice (§5d), shown before any TikTok-bound queueing. */}
-      <Dialog open={Boolean(consent)} onOpenChange={(o) => !o && setConsent(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Post to TikTok</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 pt-1 text-sm">
-            <p>
-              {tiktokConsentDeclaration({
-                ...DEFAULT_TIKTOK_OPTIONS,
-                commercialDisclosure: consent?.branded ?? false,
-                brandedContent: consent?.branded ?? false,
-              })}
+        <Dialog open={Boolean(consent)} onOpenChange={(o) => !o && setConsent(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Post to TikTok</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 pt-1 text-sm">
+              <p>
+                {tiktokConsentDeclaration({
+                  ...DEFAULT_TIKTOK_OPTIONS,
+                  commercialDisclosure: consent?.branded ?? false,
+                  brandedContent: consent?.branded ?? false,
+                })}
+              </p>
+              <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                After you publish, it can take a few minutes for TikTok to finish processing your
+                post before it appears on your profile.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setConsent(null)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmConsent} disabled={addToQueue.isPending}>
+                {addToQueue.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Agree &amp; add to queue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <MoveToFolderDialog
+          open={moveOpen}
+          onOpenChange={setMoveOpen}
+          videoIds={[...selectedIds]}
+          onMoved={clearSelection}
+        />
+
+        {/* Folder create / rename / delete */}
+        <NewFolderDialog
+          open={newFolderOpen}
+          onOpenChange={setNewFolderOpen}
+          parentId={currentFolderId}
+          onCreated={(folder) => navigateToFolder(folder.id)}
+        />
+
+        <RenameFolderDialog
+          folder={renamingFolder}
+          onOpenChange={(o) => !o && setRenamingFolder(null)}
+        />
+
+        <Dialog
+          open={Boolean(deletingFolder)}
+          onOpenChange={(o) => !o && !removeFolder.isPending && setDeletingFolder(null)}
+        >
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete “{deletingFolder?.name}”?</DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground text-sm">
+              This permanently deletes this folder, everything inside it — including all subfolders
+              and their videos — and the video files themselves. This can’t be undone.
             </p>
-            <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              After you publish, it can take a few minutes for TikTok to finish processing your post
-              before it appears on your profile.
-            </p>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setConsent(null)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmConsent} disabled={addToQueue.isPending}>
-              {addToQueue.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Agree &amp; add to queue
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeletingFolder(null)}
+                disabled={removeFolder.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  deletingFolder && removeFolder.mutate({ folderId: deletingFolder.id })
+                }
+                disabled={removeFolder.isPending}
+              >
+                {removeFolder.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Delete folder
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+function EmptyState({
+  hasFilters,
+  isSearching,
+  inFolder,
+}: {
+  hasFilters: boolean;
+  isSearching: boolean;
+  inFolder: boolean;
+}) {
+  const title = isSearching ? 'No results' : inFolder ? 'This folder is empty' : 'No videos yet';
+  const body = isSearching
+    ? 'Try clearing the search or filters.'
+    : inFolder
+      ? 'Upload videos here, create a subfolder, or move items into this folder.'
+      : 'Upload a batch of videos to get started — they upload straight to storage and we build your queue from there.';
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16 text-center">
       <Film className="text-muted-foreground h-8 w-8" />
       <p className="font-medium">
-        {hasFilters ? 'No videos match those filters' : 'No videos yet'}
+        {hasFilters && !isSearching ? 'No videos match those filters' : title}
       </p>
-      <p className="text-muted-foreground max-w-sm text-sm">
-        {hasFilters
-          ? 'Try clearing the search or filters.'
-          : 'Upload a batch of videos to get started — they upload straight to storage and we build your queue from there.'}
-      </p>
+      <p className="text-muted-foreground max-w-sm text-sm">{body}</p>
     </div>
   );
 }

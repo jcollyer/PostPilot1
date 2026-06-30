@@ -14,6 +14,7 @@ import {
   regenerateMetadataSchema,
   selectThumbnailSchema,
   setCategoryManySchema,
+  setFolderManySchema,
   setPlatformMetaSchema,
   setTargetPlatformsManySchema,
   setTargetPlatformsSchema,
@@ -75,7 +76,7 @@ async function ownedVideo(prisma: PrismaClient, userId: string, videoId: string)
   return video;
 }
 
-const VIDEO_INCLUDE = {
+export const VIDEO_INCLUDE = {
   category: true,
   selectedThumbnail: true,
   // Only the TikTok row is needed to compute the "requires user input" gate.
@@ -83,12 +84,12 @@ const VIDEO_INCLUDE = {
   // Used to flag whether the video is already part of the user's queue.
   _count: { select: { queueItems: true } },
 } as const;
-type VideoRecord = Prisma.VideoGetPayload<{ include: typeof VIDEO_INCLUDE }>;
+export type VideoRecord = Prisma.VideoGetPayload<{ include: typeof VIDEO_INCLUDE }>;
 
 type PlatformMetaRecord = Prisma.VideoPlatformMetaGetPayload<true>;
 
 /** Whether the caller has a usable (ACTIVE) TikTok connection right now. */
-async function hasActiveTikTok(prisma: PrismaClient, userId: string): Promise<boolean> {
+export async function hasActiveTikTok(prisma: PrismaClient, userId: string): Promise<boolean> {
   const conn = await prisma.platformConnection.findFirst({
     where: { userId, platform: Platform.TIKTOK, status: 'ACTIVE' },
     select: { id: true },
@@ -121,7 +122,7 @@ function tiktokNeedsInput(v: VideoRecord, tiktokConnected: boolean): boolean {
 }
 
 /** Map a Video row to a safe client DTO (BigInt → number, never exposes keys we don't need). */
-function toVideoDto(v: VideoRecord, tiktokConnected = false) {
+export function toVideoDto(v: VideoRecord, tiktokConnected = false) {
   return {
     id: v.id,
     status: v.status,
@@ -145,6 +146,8 @@ function toVideoDto(v: VideoRecord, tiktokConnected = false) {
     category: v.category
       ? { id: v.category.id, name: v.category.name, color: v.category.color }
       : null,
+    // Folder the video lives in (null = the root).
+    folderId: v.folderId,
     uploadSessionId: v.uploadSessionId,
     isDuplicate: v.isDuplicate,
     // True when this video already has a slot in the user's queue.
@@ -217,6 +220,17 @@ export const mediaRouter = router({
       }
     }
 
+    // Validate the target folder belongs to the caller (null = root).
+    if (input.folderId) {
+      const folder = await ctx.prisma.folder.findFirst({
+        where: { id: input.folderId, userId: ctx.userId },
+        select: { id: true },
+      });
+      if (!folder) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Folder not found.' });
+      }
+    }
+
     const ext = extensionFor(input.filename) || extensionForMime(input.contentType);
 
     // Create the row first so we have a stable id to build the storage key from.
@@ -234,6 +248,7 @@ export const mediaRouter = router({
         hashtags: [],
         targetPlatforms: [],
         uploadSessionId: input.uploadSessionId ?? null,
+        folderId: input.folderId ?? null,
       },
     });
 
@@ -529,6 +544,26 @@ export const mediaRouter = router({
       });
       return { updated: count };
     }),
+
+  /**
+   * Move many videos into a folder (null = the root). This is how the library
+   * relocates items between folders. Validates folder ownership first.
+   */
+  moveMany: protectedProcedure.input(setFolderManySchema).mutation(async ({ ctx, input }) => {
+    if (input.folderId) {
+      const folder = await ctx.prisma.folder.findFirst({
+        where: { id: input.folderId, userId: ctx.userId },
+        select: { id: true },
+      });
+      if (!folder) throw new TRPCError({ code: 'NOT_FOUND', message: 'Folder not found.' });
+    }
+
+    const { count } = await ctx.prisma.video.updateMany({
+      where: { id: { in: input.videoIds }, userId: ctx.userId },
+      data: { folderId: input.folderId },
+    });
+    return { updated: count };
+  }),
 
   // -------------------------------------------------------------------------
   // AI pipeline (heavy work runs in the worker — these just read state and
