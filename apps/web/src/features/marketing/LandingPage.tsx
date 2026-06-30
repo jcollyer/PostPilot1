@@ -23,49 +23,30 @@ import { SiteHeader } from './SiteHeader';
 const FEATURES = [
   {
     icon: UploadCloud,
-    iconClass: 'bg-primary/10 text-primary',
     title: 'Upload once, queue forever',
     body: 'Drop a whole backlog of short-form videos in one go. PostPilot holds them in a tidy queue so you are never scrambling for something to post.',
   },
   {
     icon: Wand2,
-    iconClass: 'bg-brand-teal/15 text-brand-teal',
     title: 'AI does the busywork',
     body: 'It writes titles, captions, and hashtags and picks thumbnails for each clip — so every post goes out polished without you touching it.',
   },
   {
     icon: CalendarClock,
-    iconClass: 'bg-brand-teal-dark/15 text-brand-teal-dark',
     title: 'Smart, hands-off scheduling',
     body: 'It spaces similar videos apart and publishes on your schedule to TikTok, Instagram Reels, and YouTube Shorts automatically.',
   },
   {
     icon: Sparkles,
-    iconClass: 'bg-primary/10 text-primary',
     title: 'Only pings you when it matters',
     body: 'No noisy dashboards to babysit. PostPilot runs itself and reaches out only when something genuinely needs your attention.',
   },
 ];
 
 const STEPS = [
-  {
-    step: '1',
-    title: 'Connect your accounts',
-    body: 'Link TikTok, Reels, and Shorts in a couple of clicks.',
-    circleClass: 'bg-primary text-primary-foreground',
-  },
-  {
-    step: '2',
-    title: 'Upload your backlog',
-    body: 'Add videos once; AI preps the captions and thumbnails.',
-    circleClass: 'bg-brand-teal text-white',
-  },
-  {
-    step: '3',
-    title: 'Walk away',
-    body: 'PostPilot publishes on schedule and keeps you consistent.',
-    circleClass: 'bg-brand-teal-dark text-white',
-  },
+  { step: '1', title: 'Connect your accounts', body: 'Link TikTok, Reels, and Shorts in a couple of clicks.' },
+  { step: '2', title: 'Upload your backlog', body: 'Add videos once; AI preps the captions and thumbnails.' },
+  { step: '3', title: 'Walk away', body: 'PostPilot publishes on schedule and keeps you consistent.' },
 ];
 
 export function LandingPage() {
@@ -76,9 +57,9 @@ export function LandingPage() {
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-primary/10 via-brand-teal/5 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-primary/10 to-transparent" />
           <div
-            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-brand-teal/10 blur-3xl"
+            className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
             aria-hidden
           />
           <div className="mx-auto max-w-6xl px-6 py-20 text-center sm:py-28">
@@ -90,7 +71,7 @@ export function LandingPage() {
               className="mx-auto mb-6 h-16 w-auto"
               priority
             />
-            <div className="text-brand-teal-dark border-brand-teal/30 bg-brand-teal/10 mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
+            <div className="text-primary border-primary/20 bg-primary/5 mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
               <Sparkles className="h-3.5 w-3.5" />
               Your content queue on autopilot
             </div>
@@ -136,9 +117,7 @@ export function LandingPage() {
                 key={f.title}
                 className="border-border/60 bg-card rounded-xl border p-6 shadow-sm transition-shadow hover:shadow-md"
               >
-                <div
-                  className={`${f.iconClass} mb-4 flex size-11 items-center justify-center rounded-lg`}
-                >
+                <div className="bg-primary/10 text-primary mb-4 flex size-11 items-center justify-center rounded-lg">
                   <f.icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-semibold">{f.title}</h3>
@@ -149,7 +128,7 @@ export function LandingPage() {
         </section>
 
         {/* How it works */}
-        <section className="bg-brand-teal/5 border-brand-teal/15 border-y">
+        <section className="bg-secondary/40 border-border/60 border-y">
           <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-semibold tracking-tight">Live in three steps</h2>
@@ -160,9 +139,7 @@ export function LandingPage() {
             <div className="mt-12 grid gap-8 sm:grid-cols-3">
               {STEPS.map((s) => (
                 <div key={s.step} className="text-center">
-                  <div
-                    className={`${s.circleClass} mx-auto flex size-10 items-center justify-center rounded-full text-sm font-semibold`}
-                  >
+                  <div className="bg-primary text-primary-foreground mx-auto flex size-10 items-center justify-center rounded-full text-sm font-semibold">
                     {s.step}
                   </div>
                   <h3 className="mt-4 font-semibold">{s.title}</h3>
@@ -175,7 +152,7 @@ export function LandingPage() {
 
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-6 py-20">
-          <div className="text-primary-foreground relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-brand-teal-dark px-8 py-14 text-center">
+          <div className="text-primary-foreground relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-700 px-8 py-14 text-center">
             <h2 className="text-3xl font-semibold tracking-tight">
               Stop scrambling to stay consistent
             </h2>

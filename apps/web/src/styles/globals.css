@@ -33,11 +33,6 @@
     --input: 214 32% 91%;
     --ring: 214 93% 48%;
 
-    /* Brand accent palette (teals) — used on public/marketing pages */
-    --brand-teal-dark: 178 43% 27%; /* #27615F */
-    --brand-teal: 178 49% 40%; /* #349995 */
-    --brand-teal-light: 176 19% 72%; /* #A9C5C3 */
-
     --radius: 0.625rem;
   }
 
@@ -70,11 +65,6 @@
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 214 92% 56%;
-
-    /* Brand accent palette (teals) — used on public/marketing pages */
-    --brand-teal-dark: 178 43% 27%; /* #27615F */
-    --brand-teal: 178 49% 40%; /* #349995 */
-    --brand-teal-light: 176 19% 72%; /* #A9C5C3 */
   }
 }
 

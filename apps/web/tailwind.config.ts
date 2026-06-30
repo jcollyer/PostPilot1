@@ -47,14 +47,6 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Brand accent palette (teals) — used on public/marketing pages
-        brand: {
-          teal: {
-            DEFAULT: 'hsl(var(--brand-teal))',
-            dark: 'hsl(var(--brand-teal-dark))',
-            light: 'hsl(var(--brand-teal-light))',
-          },
-        },
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'sans-serif'],
