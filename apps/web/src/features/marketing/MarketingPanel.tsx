@@ -2,19 +2,14 @@ import { CheckCircle2, Sparkles } from 'lucide-react';
 
 /**
  * Brand panel shown beside the auth form on the landing/login page. States the
- * positioning ("your content queue", not a "social media manager") and pricing.
+ * positioning ("your content queue", not a "social media manager"). Pricing now
+ * lives on the dedicated /pricing page.
  */
 
 const VALUE_PROPS = [
   'Upload a backlog once — AI writes titles, captions, hashtags, and picks thumbnails.',
   'It spaces similar videos apart and posts on your schedule to TikTok, Reels & Shorts.',
   'It runs itself — and only pings you when something genuinely needs you.',
-];
-
-const TIERS = [
-  { name: 'Free', price: '$0', blurb: 'A limited queue and uploads to try it out.' },
-  { name: 'Creator', price: '$5', blurb: 'For solo creators staying consistent.', featured: true },
-  { name: 'Pro', price: '$8', blurb: 'Bigger queues and more headroom.' },
 ];
 
 export function MarketingPanel() {
@@ -42,27 +37,6 @@ export function MarketingPanel() {
           </li>
         ))}
       </ul>
-
-      <div>
-        <p className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
-          Affordable enough to be an impulse
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {TIERS.map((t) => (
-            <div
-              key={t.name}
-              className={`rounded-lg border p-3 ${t.featured ? 'border-primary bg-primary/5' : ''}`}
-            >
-              <p className="text-sm font-medium">{t.name}</p>
-              <p className="text-lg font-semibold">
-                {t.price}
-                <span className="text-muted-foreground text-xs font-normal">/mo</span>
-              </p>
-              <p className="text-muted-foreground mt-1 text-[11px] leading-snug">{t.blurb}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
