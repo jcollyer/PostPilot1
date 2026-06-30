@@ -12,7 +12,7 @@ import {
   platformSchema,
   TIKTOK_PRIVACY_LABELS,
   TIKTOK_PRIVACY_LEVELS,
-  tiktokConsentDeclaration,
+  tiktokConsentSegments,
   tiktokContentLabel,
   type Platform,
   type TikTokPostOptions,
@@ -548,7 +548,7 @@ function TikTokRequirementsEditor({
   };
 
   const reasons = evaluateTikTokRequirements(effective);
-  const consent = tiktokConsentDeclaration(effective);
+  const consentSegments = tiktokConsentSegments(effective);
   const contentLabel = tiktokContentLabel(effective);
   const commercialNeedsChoice = commercial && !brandOrganic && !brandedContent;
   // Privacy is the one field with no valid default — when TikTok is connected it
@@ -782,7 +782,23 @@ function TikTokRequirementsEditor({
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-muted-foreground text-xs">{consent}</p>
+        <p className="text-muted-foreground text-xs">
+          {consentSegments.map((seg, i) =>
+            seg.href ? (
+              <a
+                key={i}
+                href={seg.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                {seg.text}
+              </a>
+            ) : (
+              <span key={i}>{seg.text}</span>
+            ),
+          )}
+        </p>
         <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
           {setTiktokMeta.isPending ? (
             <>

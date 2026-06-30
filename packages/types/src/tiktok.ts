@@ -80,15 +80,52 @@ export function evaluateTikTokRequirements(opts: TikTokPostOptions): string[] {
   return reasons;
 }
 
+/** TikTok legal pages referenced by the consent declaration. */
+export const TIKTOK_MUSIC_USAGE_CONFIRMATION_URL =
+  'https://www.tiktok.com/legal/page/global/music-usage-confirmation/en';
+export const TIKTOK_BRANDED_CONTENT_POLICY_URL =
+  'https://www.tiktok.com/legal/page/global/bc-policy/en';
+
 /**
  * The consent declaration shown above the publish/queue action. The wording
- * depends on the commercial-content selections (TikTok compliance requirement).
+ * depends on the commercial-content selections (TikTok compliance requirement):
+ * - "Your brand" only            → Music Usage Confirmation
+ * - "Branded content" (or both)  → Branded Content Policy + Music Usage Confirmation
  */
 export function tiktokConsentDeclaration(opts: TikTokPostOptions): string {
   const branded = opts.commercialDisclosure && opts.brandedContent;
   return branded
     ? "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation."
     : "By posting, you agree to TikTok's Music Usage Confirmation.";
+}
+
+/** A run of declaration text, optionally a hyperlink (when `href` is set). */
+export interface TikTokConsentSegment {
+  text: string;
+  href?: string;
+}
+
+/**
+ * Same wording as {@link tiktokConsentDeclaration}, but broken into segments so
+ * the UI can render the policy names as links to TikTok's legal pages while
+ * keeping the compliance logic in one place.
+ */
+export function tiktokConsentSegments(opts: TikTokPostOptions): TikTokConsentSegment[] {
+  const branded = opts.commercialDisclosure && opts.brandedContent;
+  if (branded) {
+    return [
+      { text: "By posting, you agree to TikTok's " },
+      { text: 'Branded Content Policy', href: TIKTOK_BRANDED_CONTENT_POLICY_URL },
+      { text: ' and ' },
+      { text: 'Music Usage Confirmation', href: TIKTOK_MUSIC_USAGE_CONFIRMATION_URL },
+      { text: '.' },
+    ];
+  }
+  return [
+    { text: "By posting, you agree to TikTok's " },
+    { text: 'Music Usage Confirmation', href: TIKTOK_MUSIC_USAGE_CONFIRMATION_URL },
+    { text: '.' },
+  ];
 }
 
 /**
