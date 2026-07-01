@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Check,
   Copy,
@@ -71,6 +72,9 @@ const STATUS_OPTIONS = mediaStatusSchema.options;
 
 export function MediaLibraryView() {
   const utils = trpc.useUtils();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // Refresh whichever list is on screen. Browse mode reads `folder.list`, search
   // mode reads `media.list`, so mutations invalidate both (plus the tree).
@@ -87,7 +91,10 @@ export function MediaLibraryView() {
 
   // Folder navigation. null = the library root. While a search/filter is active
   // we show flat results across the whole library instead of a single folder.
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  // The current folder lives in the `?folder=` query param (not React state) so
+  // a refresh, a shared link, or the browser back/forward buttons land back on
+  // the same folder instead of resetting to root.
+  const currentFolderId = searchParams.get('folder');
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [renamingFolder, setRenamingFolder] = useState<FolderDto | null>(null);
   const [deletingFolder, setDeletingFolder] = useState<FolderDto | null>(null);
@@ -274,10 +281,15 @@ export function MediaLibraryView() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  // Navigate the main pane to a folder (null = root). Clears any selection and
-  // the search box so you land in a clean browse view of that folder.
+  // Navigate the main pane to a folder (null = root). Updates the `?folder=`
+  // query param so the URL reflects the folder you're viewing, and clears any
+  // selection and the search box so you land in a clean browse view of it.
   const navigateToFolder = (id: string | null) => {
-    setCurrentFolderId(id);
+    const params = new URLSearchParams(searchParams.toString());
+    if (id) params.set('folder', id);
+    else params.delete('folder');
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
     clearSelection();
     setSearchInput('');
     setSearch('');

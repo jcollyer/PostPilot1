@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 
 import { MediaLibraryView } from '@/features/media/MediaLibraryView';
@@ -11,5 +12,11 @@ export default async function MediaPage() {
   const session = await getServerSession();
   if (!session?.user) redirect('/signin');
 
-  return <MediaLibraryView />;
+  // MediaLibraryView reads the current folder from `?folder=` via
+  // useSearchParams, which Next.js requires to be wrapped in Suspense.
+  return (
+    <Suspense fallback={null}>
+      <MediaLibraryView />
+    </Suspense>
+  );
 }
