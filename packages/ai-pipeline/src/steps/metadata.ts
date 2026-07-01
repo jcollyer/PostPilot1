@@ -11,6 +11,10 @@ import type { StyleExample } from './style-examples';
  * Instagram sits between).
  */
 
+// Matches steps/frames.ts's SAMPLE_FRACTIONS length — send every candidate
+// frame extractThumbnails produced, not a subset of it.
+const MAX_FRAMES = 5;
+
 const platformMetaSchema = z.object({
   title: z.string().max(150).optional().default(''),
   caption: z.string().max(2200).optional().default(''),
@@ -186,7 +190,7 @@ function buildStyleExamplesText(examples: StyleExample[]): string {
   return `\nThis creator's past posts (voice/tone/hashtag-style reference ONLY — do not reuse their topics or wording):\n${blocks}\n`;
 }
 
-/** Run the vision model over up to 4 frames + transcript and parse the result. */
+/** Run the vision model over up to MAX_FRAMES frames + transcript and parse the result. */
 export async function generateMetadata(params: {
   frames: Buffer[];
   transcript: string | null;
@@ -195,10 +199,18 @@ export async function generateMetadata(params: {
   styleExamples?: StyleExample[];
   creatorProfile?: CreatorProfileContext | null;
 }): Promise<GeneratedMetadata> {
-  const frames = params.frames.slice(0, 4);
+  // extractThumbnails samples MAX_FRAMES candidates (steps/frames.ts's
+  // SAMPLE_FRACTIONS) — send all of them, not just the first 4, so the model
+  // can actually see (and pick as thumbnail) the near-the-end frame too.
+  // 'high' detail lets it use the source resolution ffmpeg captured instead
+  // of a downscaled 512x512 pass — worth it for a hook-picking/context task,
+  // at the cost of materially more tokens per image than 'low' (~85 tokens
+  // flat) — expect several hundred to ~1000+ tokens per frame depending on
+  // source resolution.
+  const frames = params.frames.slice(0, MAX_FRAMES);
   const imageContent = frames.map((buf) => ({
     type: 'image_url' as const,
-    image_url: { url: `data:image/jpeg;base64,${buf.toString('base64')}`, detail: 'low' as const },
+    image_url: { url: `data:image/jpeg;base64,${buf.toString('base64')}`, detail: 'high' as const },
   }));
 
   const transcriptText = params.transcript
