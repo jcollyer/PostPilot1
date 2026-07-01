@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Check,
@@ -140,6 +140,18 @@ export function MediaLibraryView() {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, utils]);
+
+  // The interval above can stop right after the *last* poll landed but before
+  // the worker actually finished (aiSummary and the grid poll on independent
+  // timers), leaving stale "processing" cards with no thumbnail until a manual
+  // reload. Do one more refresh whenever busy flips from true -> false to pick
+  // up the final completed state.
+  const wasBusy = useRef(busy);
+  useEffect(() => {
+    if (wasBusy.current && !busy) refresh();
+    wasBusy.current = busy;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy]);
 
   const regenerate = trpc.media.regenerateMetadata.useMutation({
     onSuccess: () => {
@@ -444,7 +456,19 @@ export function MediaLibraryView() {
               <FolderPlus className="mr-2 h-4 w-4" />
               New folder
             </Button>
-            <UploadDialog onUploaded={refresh} folderId={currentFolderId} />
+            <UploadDialog
+              onUploaded={() => {
+                refresh();
+                // New uploads land as aiStatus PENDING and the worker picks them
+                // up right away, but aiSummary's refetchInterval only re-arms
+                // itself while it *already* sees pending/running work — if it
+                // was idle before this upload it would otherwise never poll
+                // again, so the spinner/stop button and grid-refresh loop
+                // (which both key off aiSummary) would never turn on.
+                aiSummary.refetch();
+              }}
+              folderId={currentFolderId}
+            />
           </div>
         </div>
 
